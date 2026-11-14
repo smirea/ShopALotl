@@ -1,0 +1,73 @@
+#!/usr/bin/env swift
+// Renders every raster the app needs from the mascot, docs/assets/icon.svg: `./scripts/icons`.
+// The outputs are committed, because Xcode and CI build without running this.
+import AppKit
+import UniformTypeIdentifiers
+
+let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+let source = root.appending(path: "docs/assets/icon.svg")
+let assets = root.appending(path: "Sources/App/Assets.xcassets")
+
+guard let mascot = NSImage(contentsOf: source) else {
+    fatalError("Could not read \(source.path)")
+}
+
+struct Backdrop {
+    let top: NSColor
+    let bottom: NSColor
+}
+
+func color(_ hex: UInt32) -> NSColor {
+    NSColor(
+        srgbRed: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255,
+        alpha: 1
+    )
+}
+
+let light = Backdrop(top: color(0xD8F5EE), bottom: color(0x8ADBCF))
+let dark = Backdrop(top: color(0x14474B), bottom: color(0x082A2E))
+
+/// The art bleeds off its bottom edge, so the mascot stays on the icon's bottom edge and shrinks toward it. A nil
+/// backdrop keeps the transparency and the art's own framing.
+func render(_ pixels: Int, backdrop: Backdrop?, to path: String) {
+    let info: CGImageAlphaInfo = backdrop == nil ? .premultipliedLast : .noneSkipLast
+    guard let context = CGContext(
+        data: nil, width: pixels, height: pixels, bitsPerComponent: 8, bytesPerRow: 0,
+        space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: info.rawValue
+    ) else { fatalError("No bitmap context for \(path)") }
+    let size = CGFloat(pixels)
+    var frame = CGRect(x: 0, y: 0, width: size, height: size)
+    if let backdrop {
+        let gradient = CGGradient(
+            colorsSpace: context.colorSpace, colors: [backdrop.top.cgColor, backdrop.bottom.cgColor] as CFArray, locations: [0, 1]
+        )!
+        context.drawLinearGradient(gradient, start: CGPoint(x: 0, y: size), end: .zero, options: [])
+        let side = size * 0.86
+        frame = CGRect(x: (size - side) / 2, y: 0, width: side, height: side)
+    }
+    NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
+    mascot.draw(in: frame)
+    NSGraphicsContext.current = nil
+
+    let url = assets.appending(path: path)
+    guard let image = context.makeImage(),
+          let destination = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil)
+    else { fatalError("Could not write \(url.path)") }
+    CGImageDestinationAddImage(destination, image, nil)
+    guard CGImageDestinationFinalize(destination) else { fatalError("Could not write \(url.path)") }
+    print("Wrote \(path)")
+}
+
+render(1024, backdrop: light, to: "AppIcon.appiconset/AppIcon.png")
+render(1024, backdrop: dark, to: "AppIcon.appiconset/AppIcon-Dark.png")
+for pixels in [16, 32, 64, 128, 256, 512, 1024] {
+    render(pixels, backdrop: light, to: "AppIcon.appiconset/Mac-\(pixels).png")
+}
+for scale in [2, 3] {
+    render(160 * scale, backdrop: nil, to: "LaunchMascot.imageset/LaunchMascot@\(scale)x.png")
+}
+
+let copy = assets.appending(path: "Mascot.imageset/mascot.svg")
+try? FileManager.default.removeItem(at: copy)
+try FileManager.default.copyItem(at: source, to: copy)
+print("Copied the mascot to Mascot.imageset/mascot.svg")

@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct StarterApp: App {
+struct ShopALotlApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -12,13 +12,13 @@ struct StarterApp: App {
 struct ContentView: View {
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "swift")
-                .font(.system(size: 48))
-                .foregroundStyle(.orange)
-            Text("Hello!")
-                .font(.largeTitle)
-            Text("Your app is ready to build.")
-                .foregroundStyle(.secondary)
+            Image("Mascot")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 160, height: 160)
+                .accessibilityHidden(true)
+            Text("ShopALotl")
+                .font(.largeTitle.bold())
         }
         .padding()
     }
