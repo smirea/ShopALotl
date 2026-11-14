@@ -22,6 +22,13 @@
 - Build errors leave the watcher running; fix the error and save again. Build output is in `DerivedData/device/build.log`, `DerivedData/simulator/build.log`, or `DerivedData/mac/build.log`.
 - `swift build` checks the shared code on macOS. Use the Xcode project for simulator builds and bundled resources; `swift run` launches the macOS executable.
 
+# Feedback
+
+- `Feedback.enable()` in `Sources/App/App.swift` turns on shake-to-feedback from `https://github.com/smirea/feedback-engine`. In a simulator, shake with `xcrun simctl notify_post <udid> com.apple.UIKit.SimulatorShake`, then press `Add Feedback` within 5 seconds.
+- When you build or change a SwiftUI screen, row, card, or chart, follow Feedback's accessibility skill. Read the latest with `gh api repos/smirea/feedback-engine/contents/skills/feedback-accessibility/SKILL.md -H 'Accept: application/vnd.github.raw'`.
+- Feedback needs UIKit. On macOS, `Sources/App/Support/FeedbackShim.swift` compiles its tags to nothing, so views stay shared.
+- The **ProcrastiMate** entry in the editor's Share menu comes from the `com.stefan.shared` keychain group in `Config/App.entitlements`. The simulator build is signed ad hoc so the group counts.
+
 # README
 
 - `README.md` starts as the scaffold's placeholder. Once the project takes shape, rewrite it for this project and keep it short.

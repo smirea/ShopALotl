@@ -1,7 +1,14 @@
+import Feedback
 import SwiftUI
 
 @main
 struct ShopALotlApp: App {
+    init() {
+        #if canImport(UIKit)
+        Feedback.enable()
+        #endif
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -19,7 +26,10 @@ struct ContentView: View {
                 .accessibilityHidden(true)
             Text("ShopALotl")
                 .font(.largeTitle.bold())
+            Text("Shake to send feedback.")
+                .foregroundStyle(.secondary)
         }
         .padding()
+        .feedback(self)
     }
 }
