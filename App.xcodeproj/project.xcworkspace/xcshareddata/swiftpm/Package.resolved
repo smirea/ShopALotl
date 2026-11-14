@@ -1,5 +1,5 @@
 {
-  "originHash" : "c9f627c3ec963e03266521bacbe47d4065e5b7c4af6137983a2bf98550c8d5fb",
+  "originHash" : "97c6638a6ee670cb379d3a23a017b43953cc49dd933fe6c18d86db1e21760f28",
   "pins" : [
     {
       "identity" : "feedback-engine",
@@ -8,6 +8,24 @@
       "state" : {
         "branch" : "master",
         "revision" : "fb045e9513107897450dce9e85e615ea32287264"
+      }
+    },
+    {
+      "identity" : "grdb.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/groue/GRDB.swift.git",
+      "state" : {
+        "revision" : "92a554cd0d5e8d67cb18993c6054e73fe42c066c",
+        "version" : "7.12.0"
+      }
+    },
+    {
+      "identity" : "sync-engine",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/smirea/sync-engine",
+      "state" : {
+        "branch" : "master",
+        "revision" : "0388496107bd4111a08f5da4823d32bc5301c02d"
       }
     }
   ],

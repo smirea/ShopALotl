@@ -1,12 +1,15 @@
 #!/usr/bin/env bun
+import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync } from "node:fs";
+import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
+import { parseDotenv } from "./lib.ts";
 
 const root = resolve(import.meta.dir, "..");
 const runCommand = "./scripts/run";
+const serverPid = join(root, ".data", "server.pid");
 const children = new Set<Bun.Subprocess>();
 const { values } = parseArgs({
     options: {
@@ -17,6 +20,7 @@ const { values } = parseArgs({
         headless: { type: "boolean" },
         "pair-watch": { type: "boolean" },
         delete: { type: "boolean" },
+        stop: { type: "boolean" },
         team: { type: "string", default: process.env.SWIFT_RUN_DEVELOPMENT_TEAM },
         help: { type: "boolean", short: "h" },
     },
@@ -138,6 +142,54 @@ async function agentSimulator(...args: string[]) {
     if (!existsSync(binary)) return;
     const code = await Bun.spawn([binary, ...args], { cwd: root, stdin: "ignore", stdout: "inherit", stderr: "inherit" }).exited;
     if (code !== 0) process.exit(code);
+}
+
+async function listening(port: string) {
+    try {
+        await fetch(`http://127.0.0.1:${port}/status`, { signal: AbortSignal.timeout(1000) });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/** The build settings a target reads. A device syncs with production, so it needs production's address and token;
+ * a simulator or the Mac syncs with this checkout's local server, started here, detached so it outlives this run. */
+async function prepareEnvironment(target: Target) {
+    if (!existsSync(join(root, "Config/LocalSecrets.xcconfig"))) await command(["bun", "run", "env:generate"]);
+    if (target.kind === "device") {
+        if (!existsSync(join(root, "Config/Env.xcconfig"))) await command(["bun", "run", "env:ios"]);
+        return;
+    }
+    // Bun gives variables it already has precedence over a folder's .env files, and this script already loaded the
+    // root .env with the main checkout's ports, so the server gets its own values explicitly.
+    const env = parseDotenv(readFileSync(join(root, "server/.env.local"), "utf8"));
+    if (!env.API_PORT) throw new Error("No API_PORT in server/.env.local. Run bun run env:generate.");
+    if (await listening(env.API_PORT)) return;
+    mkdirSync(dirname(serverPid), { recursive: true });
+    const log = join(root, ".data", "server.log");
+    const out = openSync(log, "a");
+    const server = spawn("bun", ["dev.ts"], {
+        cwd: join(root, "server"), detached: true, stdio: ["ignore", out, out], env: { ...process.env, ...env },
+    });
+    server.unref();
+    closeSync(out);
+    writeFileSync(serverPid, String(server.pid));
+    for (let i = 0; i < 60 && !(await listening(env.API_PORT)); i++) await Bun.sleep(500);
+    if (!(await listening(env.API_PORT))) throw new Error(`The server didn't answer on port ${env.API_PORT} within 30 seconds. See ${log}.`);
+    console.log(`Started the server on port ${env.API_PORT} (pid ${server.pid}, log ${log}). ${runCommand} --stop stops it.`);
+}
+
+function stopServer() {
+    if (!existsSync(serverPid)) return console.log("No server started by this script is running.");
+    const pid = Number(readFileSync(serverPid, "utf8"));
+    try {
+        process.kill(-pid, "SIGTERM");
+        console.log(`Stopped the server (pid ${pid}).`);
+    } catch (error: any) {
+        if (error.code !== "ESRCH") throw error;
+    }
+    unlinkSync(serverPid);
 }
 
 let booting: Promise<void> | undefined;
@@ -296,7 +348,7 @@ async function launchWatchApp(watch: { udid: string; name: string; bundle: strin
 
 async function main() {
     if (values.help) {
-        console.log(`Usage: ${runCommand} [-t simulator|mac|<target-name-or-id>] [--targets] [--watch|-w] [--no-watch] [--headless] [--pair-watch] [--delete] [--team TEAM_ID]
+        console.log(`Usage: ${runCommand} [-t simulator|mac|<target-name-or-id>] [--targets] [--watch|-w] [--no-watch] [--headless] [--pair-watch] [--delete] [--stop] [--team TEAM_ID]
 
 Defaults to a connected iOS device, then a booted simulator, then an available simulator, then My Mac.
 SWIFT_RUN_DEFAULT_TARGET overrides this choice when -t/--target is omitted. --targets marks the effective default with *.
@@ -304,9 +356,12 @@ Watching is enabled by default. Saves rebuild and restart the app. Ctrl-C stops 
 --headless skips opening Simulator.app or Device Hub; the simulator still boots and runs the app. A headless boot
 first waits on agent-simulator wait for room on the Mac, exiting 3 (rerun) after 3 minutes.
 --pair-watch pairs a watch with the simulator first, reusing its pair if it has one, and runs the watch app on it.
---delete shuts down and deletes the simulator and its paired watches instead of running.`);
+--delete shuts down and deletes the simulator and its paired watches instead of running.
+A simulator or Mac run starts this checkout's local sync server when it is not running; --stop stops it.
+A device run syncs with production and needs Config/Env.xcconfig, which bun run env:ios writes.`);
         return;
     }
+    if (values.stop) return stopServer();
     const project = xcodeProject();
     const all = await targets(project);
     const target = selectTarget(all);
@@ -323,6 +378,7 @@ first waits on agent-simulator wait for room on the Mac, exiting 3 (rerun) after
         if (values.headless && target.state !== "booted") await agentSimulator("wait", target.id);
     }
     mkdirSync(join(root, "DerivedData"), { recursive: true });
+    await prepareEnvironment(target);
     const watch = values.watch && !values["no-watch"];
     let previous = snapshot(project);
     const launch = async () => {

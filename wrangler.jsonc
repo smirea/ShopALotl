@@ -1,0 +1,15 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "shopalotl",
+	"main": "server/worker.ts",
+	"compatibility_date": "2026-11-14",
+	"routes": [{ "pattern": "shopalotl.stf.lol", "custom_domain": true }],
+	"workers_dev": false,
+	"preview_urls": false,
+	// Secrets are config.ts's REQUIRED_IN_PRODUCTION, pushed with `bun run secrets:push`.
+	"vars": { "APP_ENV": "production" },
+	// The owner's one space: a SQLite-backed Durable Object holding every synced table.
+	"durable_objects": { "bindings": [{ "name": "SPACE", "class_name": "Space" }] },
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Space"] }],
+	"observability": { "enabled": true },
+}

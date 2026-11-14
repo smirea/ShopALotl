@@ -5,3 +5,19 @@ xcuserdata/
 Config/LocalSecrets.xcconfig
 
 .DS_Store
+
+node_modules
+dist
+
+# env-manager values; the schema, .env, is tracked
+.env.local
+# per-worktree ports written by agent-t3-worktree setup
+.env.override
+# Production's API_URL and OWNER_TOKEN, written by bun run env:ios
+Config/Env.xcconfig
+
+.wrangler
+.dev.vars
+
+# the local server's SQLite file, one per checkout
+.data

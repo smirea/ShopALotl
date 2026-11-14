@@ -1,8 +1,8 @@
 # Stack
 
-- Language: Swift
-- Package Manager: Swift Package Manager
-- Minimum targets: iOS 27 and macOS 27
+- App: Swift and SwiftUI, Swift Package Manager, minimum iOS 27 and macOS 27, in `Sources/App`
+- Server: one Cloudflare Worker with one SQLite Durable Object, TypeScript on Bun, in `server/`
+- Sync: `https://github.com/smirea/sync-engine`. Its `docs/protocol.md` is the contract.
 - Keep dependencies rare and intentional
 
 # Development
@@ -21,6 +21,25 @@
 - Edit SwiftUI code and resources in `Sources/App`; Xcode picks up new files automatically. Open `App.xcodeproj` and use the shared `App` scheme for debugging.
 - Build errors leave the watcher running; fix the error and save again. Build output is in `DerivedData/device/build.log`, `DerivedData/simulator/build.log`, or `DerivedData/mac/build.log`.
 - `swift build` checks the shared code on macOS. Use the Xcode project for simulator builds and bundled resources; `swift run` launches the macOS executable.
+
+# Sync and server
+
+- The app is offline first. Every screen reads and writes the device's SQLite file through `LocalStore` (`Sources/App/Sync`). The engine's triggers queue each write, and `SyncClient` sends it to `POST /api/sync` and pulls what changed. Nothing waits on the network.
+- One owner, no accounts. One secret, `OWNER_TOKEN`, is the bearer on every request. All data lives in one space, the Durable Object named `owner`.
+- `server/schema.ts` defines the tables for both sides. After changing it, run `bun run generate` and commit `Sources/App/Sync/Generated/SyncSchema.swift`; `server/schema.test.ts` fails when it is stale. Schema changes are additive: a new column needs a default or must be nullable, and a column is never renamed or removed.
+- Rows are keyed by what they describe (`<listId>/<nameKey>` for an item), so two devices that add the same thing offline write one row. `NameKey`'s rules are frozen, and `Tests/AppTests/NameKeyTests.swift` pins them.
+- `server/api.ts` is the one fetch handler. `server/worker.ts` serves it on Cloudflare and `server/dev.ts` with Bun over `.data/<checkout>.sqlite`. `GET /status` is open, and everything under `/api` needs the owner token.
+- `./scripts/run` starts the local server for a simulator or Mac run when it is not running. `./scripts/run --stop` stops it. `bun run start:server` runs it in the foreground.
+- A simulator or Mac Debug build syncs with the local server. A device build and every Release build sync with production, `https://shopalotl.stf.lol` (`Config/Base.xcconfig`). They need `Config/Env.xcconfig`, which `bun run env:ios` writes from env-manager `prod` and `./scripts/run` writes for a device when it is missing.
+- `bun run test` runs the server tests, `swift test` the app's logic tests on macOS, and `bun run typecheck` the TypeScript.
+- A push to `master` deploys the Worker after CI passes. `bun scripts/secrets.ts deploy` deploys from this Mac.
+
+# Environment
+
+- The root `.env` is the env-manager schema of project `shopalotl`, with environments `dev` and `prod` in AWS. `env-manager gen --local` writes `Config/LocalSecrets.xcconfig` and `server/.env.local` from the schema defaults, which is all a worktree or CI needs.
+- Use the global `env-manager` for `env set`, `down`, and `up`; it has the AWS credentials. After adding a setting, set its value in each environment and run `env-manager up`, then `bun run secrets:push` for a Worker secret.
+- `scripts/secrets.ts` is the one bridge from env-manager to the Worker, GitHub, and the app's production build settings. It never prints a value.
+- Secrets are optional in the schema, so offline generation works. `server/config.ts` lists what production requires in `REQUIRED_IN_PRODUCTION` and refuses to start without it.
 
 # Feedback
 

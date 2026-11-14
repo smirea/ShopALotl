@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
   run:
@@ -37,8 +37,58 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           EVENT_NAME: ${{ github.event_name }}
-          SCAFFOLD_TYPE: swift
         run: bun .github/scripts/changes.ts
+
+  bun:
+    name: ${{ matrix.task }} (Bun)
+    needs: changes
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        task: [checks, tests, build]
+    env:
+      CI: 'true'
+    steps:
+      - name: Verify change detection
+        env:
+          CHANGE_RESULT: ${{ needs.changes.result }}
+        run: test "$CHANGE_RESULT" = success
+      - name: No relevant changes
+        if: needs.changes.outputs.bun != 'true'
+        run: echo "No Bun changes; ${{ matrix.task }} passed."
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: needs.changes.outputs.bun == 'true'
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        if: needs.changes.outputs.bun == 'true'
+        with:
+          bun-version-file: .bun-version
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: needs.changes.outputs.bun == 'true'
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-${{ runner.arch }}-bun-${{ hashFiles('.bun-version') }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-bun-${{ hashFiles('.bun-version') }}-
+      - name: Install dependencies
+        if: needs.changes.outputs.bun == 'true'
+        run: bun install --frozen-lockfile
+      - name: Generate environment from tracked defaults
+        if: needs.changes.outputs.bun == 'true'
+        run: bun run env:generate
+      - name: Checks
+        if: needs.changes.outputs.bun == 'true' && matrix.task == 'checks'
+        run: bun run typecheck
+      - name: Tests
+        if: needs.changes.outputs.bun == 'true' && matrix.task == 'tests'
+        run: bun run test
+      - name: Build
+        if: needs.changes.outputs.bun == 'true' && matrix.task == 'build'
+        run: bun run build
 
   swift:
     name: ${{ matrix.task }} (Swift)
@@ -71,6 +121,12 @@ jobs:
         with:
           bun-version-file: .bun-version
 
+      - name: Generate native environment from tracked defaults
+        if: needs.changes.outputs.swift == 'true'
+        run: |
+          bun install --frozen-lockfile
+          bun run env:generate
+
       - name: Identify Xcode and Swift toolchain
         if: needs.changes.outputs.swift == 'true'
         id: toolchain
@@ -92,3 +148,32 @@ jobs:
       - name: Run Swift task
         if: needs.changes.outputs.swift == 'true'
         run: bun .github/scripts/swift.ts "${{ matrix.task }}"
+
+  deploy:
+    name: Deploy the Worker
+    needs: [bun, swift]
+    if: ${{ github.event_name == 'push' && !cancelled() && needs.bun.result == 'success' && needs.swift.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Cloudflare credentials
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Add the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository secrets with 'bun run secrets:github'."
+            exit 1
+          fi
+      - name: Required Worker secrets
+        run: bun scripts/secrets.ts verify
+      - name: Deploy
+        run: bunx wrangler deploy

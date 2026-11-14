@@ -1,0 +1,14 @@
+// API_URL of the local server, written by `env-manager gen --local` with the checkout's ports.
+#include "LocalSecrets.xcconfig"
+// PRODUCTION_API_URL and PRODUCTION_OWNER_TOKEN from env-manager prod, written by `bun run env:ios`.
+#include? "Env.xcconfig"
+
+// Matches DEV_OWNER_TOKEN in server/config.ts, which every local server accepts.
+OWNER_TOKEN = insecure-local-dev-owner-token
+
+// A device cannot reach this Mac's local server, and a Release build is the owner's own install, so both sync with
+// production. Simulator and Mac Debug builds keep the local server.
+API_URL[sdk=iphoneos*] = $(PRODUCTION_API_URL)
+OWNER_TOKEN[sdk=iphoneos*] = $(PRODUCTION_OWNER_TOKEN)
+API_URL[config=Release] = $(PRODUCTION_API_URL)
+OWNER_TOKEN[config=Release] = $(PRODUCTION_OWNER_TOKEN)
