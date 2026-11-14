@@ -3,7 +3,7 @@
  * bindings, so this file imports neither. Secrets stay optional in the env schema so `env-manager gen --local` works
  * offline and in CI; production refuses to start without them instead of failing on the first request that reads one.
  */
-export const REQUIRED_IN_PRODUCTION = ['OWNER_TOKEN'] as const;
+export const REQUIRED_IN_PRODUCTION = ['OWNER_TOKEN', 'GITHUB_TOKEN'] as const;
 
 /** The owner bearer of every local server and the tests. Never valid in production. */
 export const DEV_OWNER_TOKEN = 'insecure-local-dev-owner-token';
@@ -15,6 +15,8 @@ export type Settings = Partial<Record<'APP_ENV' | (typeof REQUIRED_IN_PRODUCTION
 export type Config = {
 	environment: Environment;
 	ownerToken: string;
+	/** Files the Feedback editor's posts as issues (`feedback.ts`). Null in development without one, where it answers 503. */
+	githubToken: string | null;
 };
 
 export function parseConfig(settings: Settings): Config {
@@ -28,5 +30,9 @@ export function parseConfig(settings: Settings): Config {
 		if (missing.length) throw new Error(`Missing production settings: ${missing.join(', ')}`);
 		if (read('OWNER_TOKEN') === DEV_OWNER_TOKEN) throw new Error('OWNER_TOKEN is the local development token');
 	}
-	return { environment, ownerToken: read('OWNER_TOKEN') ?? DEV_OWNER_TOKEN };
+	return {
+		environment,
+		ownerToken: read('OWNER_TOKEN') ?? DEV_OWNER_TOKEN,
+		githubToken: read('GITHUB_TOKEN') ?? null,
+	};
 }

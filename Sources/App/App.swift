@@ -11,6 +11,14 @@ struct ShopALotlApp: App {
         _store = State(initialValue: store)
         #if canImport(UIKit)
         Feedback.enable()
+        Feedback.webhooks = [
+            FeedbackWebhook(
+                name: "GitHub Issue",
+                url: AppEnvironment.apiURL.appending(path: "api/feedback"),
+                image: Feedback.githubIcon,
+                headers: ["Authorization": "Bearer \(AppEnvironment.ownerToken)"]
+            ),
+        ]
         Feedback.context("Sync") {
             (
                 api: AppEnvironment.apiURL.absoluteString, status: String(describing: store.syncStatus),

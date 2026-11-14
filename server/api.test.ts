@@ -96,3 +96,37 @@ describe('handle', () => {
 		expect(response.acked).toBe(2);
 	});
 });
+
+describe('POST /api/feedback', () => {
+	const post = (token: string | null, body?: FormData) =>
+		handle(
+			new Request('http://api.test/api/feedback', {
+				method: 'POST',
+				headers: token ? { authorization: `Bearer ${token}` } : {},
+				body: body ?? 'x',
+			}),
+			app,
+		);
+
+	test('needs the owner token, then a GitHub token on the server', async () => {
+		expect((await post(null)).status).toBe(401);
+		const response = await post(DEV_OWNER_TOKEN);
+		expect(response.status).toBe(503);
+		expect(await response.json()).toEqual({ message: 'Set GITHUB_TOKEN on the server to file feedback issues.' });
+	});
+
+	test('a post without the four parts is refused before GitHub is called', async () => {
+		const withToken: App = { ...app, config: { ...app.config, githubToken: 'unused' } };
+		const form = new FormData();
+		form.set('id', 'post-1');
+		const response = await handle(
+			new Request('http://api.test/api/feedback', {
+				method: 'POST',
+				headers: { authorization: `Bearer ${DEV_OWNER_TOKEN}` },
+				body: form,
+			}),
+			withToken,
+		);
+		expect(response.status).toBe(400);
+	});
+});

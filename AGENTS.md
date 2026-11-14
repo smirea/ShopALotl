@@ -45,6 +45,7 @@
 
 - `Feedback.enable()` in `Sources/App/App.swift` turns on shake-to-feedback from `https://github.com/smirea/feedback-engine`. In a simulator, shake with `xcrun simctl notify_post <udid> com.apple.UIKit.SimulatorShake`, then press `Add Feedback` within 5 seconds.
 - When you build or change a SwiftUI screen, row, card, or chart, follow Feedback's accessibility skill. Read the latest with `gh api repos/smirea/feedback-engine/contents/skills/feedback-accessibility/SKILL.md -H 'Accept: application/vnd.github.raw'`.
+- The editor's **GitHub Issue** entry posts to `POST /api/feedback` (`server/feedback.ts`), which files an issue in `smirea/ShopALotl` as the `smirea-ai` account, labeled `feedback`. The server needs `GITHUB_TOKEN`, that account's `gh auth token`.
 - Feedback needs UIKit. On macOS, `Sources/App/Support/FeedbackShim.swift` compiles its tags to nothing, so views stay shared.
 - The **ProcrastiMate** entry in the editor's Share menu comes from the `com.stefan.shared` keychain group in `Config/App.entitlements`. The simulator build is signed ad hoc so the group counts.
 
