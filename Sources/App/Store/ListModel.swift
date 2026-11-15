@@ -22,9 +22,15 @@ final class ListModel {
     private(set) var undoable: Undoable?
     /// Checked rows stay on the list but out of sight. Shared by every list on this device.
     private(set) var hidesChecked = UserDefaults.standard.bool(forKey: ListModel.hidesCheckedKey)
-    /// The rows the last add wrote, set once their insertion has animated: a List ignores a scroll to a row while
-    /// it is still animating the row in.
-    private(set) var added: [ItemID] = []
+    /// The last add, set once its rows have animated in: a List ignores a scroll to a row while it is still
+    /// animating the row in.
+    private(set) var landed: Landing?
+
+    /// Each add is its own, so adding the same name twice brings it into view twice.
+    struct Landing: Equatable {
+        let id = UUID()
+        let rows: [ItemID]
+    }
 
     struct Undoable: Equatable {
         let id = UUID()
@@ -93,8 +99,8 @@ final class ListModel {
 
     /// An entry already on the list writes nothing, and is still brought into view.
     private func land(_ entries: [Entry]) {
-        let ids = entries.map { ItemID(listID: listID, key: $0.key) }
-        reload(releasing: store.add(entries, to: listID)) { [weak self] in self?.added = ids }
+        let landing = Landing(rows: entries.map { ItemID(listID: listID, key: $0.key) })
+        reload(releasing: store.add(entries, to: listID)) { [weak self] in self?.landed = landing }
     }
 
     func toggle(_ id: ItemID) {

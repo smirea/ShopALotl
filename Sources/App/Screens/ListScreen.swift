@@ -89,8 +89,8 @@ struct ListScreen: View {
             .onScrollPhaseChange { _, phase in
                 if phase != .idle { model.touch() }
             }
-            .onChange(of: model.added) { _, added in
-                guard let last = added.last else { return }
+            .onChange(of: model.landed) { _, landed in
+                guard let last = landed?.rows.last else { return }
                 withAnimation(.snappy) { scroller.scrollTo(last, anchor: .center) }
             }
         }
