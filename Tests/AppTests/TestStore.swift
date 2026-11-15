@@ -19,7 +19,6 @@ func drawn(_ sections: [ListSection]) -> [String] {
         let title = switch section.id {
         case let .aisle(category): category.rawValue
         case .plain: "plain"
-        case .checked: "checked"
         }
         return "\(title): \(section.rows.map(\.item.name).joined(separator: ", "))"
     }

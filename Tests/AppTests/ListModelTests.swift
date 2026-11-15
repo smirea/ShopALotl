@@ -12,7 +12,7 @@ import Testing
 
     private func id(_ name: String) -> ItemID { ItemID(listID: list, key: NameKey(name)!) }
 
-    @Test func aCheckedRowKeepsItsSectionThroughOtherGesturesAndOnlyTheirOwnRowsMove() throws {
+    @Test func aCheckedRowStaysInItsAisleAndOnlyTheRowsAGestureWroteMove() throws {
         let model = try #require(ListModel(listID: list, store: store))
         model.add("milk, bread, eggs")
         #expect(drawn(model.sections) == ["bakery: Bread", "dairy: Eggs, Milk"])
@@ -27,18 +27,24 @@ import Testing
         #expect(drawn(model.sections) == ["produce: Bananas", "dairy: Milk", "pantry: Eggs"])
     }
 
-    @Test func aRowBroughtBackByUndoOrByAddingItAgainLeavesTheCheckedSection() throws {
-        store.add(EntryParser.entries(in: "milk, bread"), to: list)
-        store.toggleChecked(id("milk"))
-        store.toggleChecked(id("bread"))
+    @Test func hidingCheckedTakesThemOutAtOnceAndALaterCheckWaitsForTheScreenToSettle() throws {
         let model = try #require(ListModel(listID: list, store: store))
-        #expect(drawn(model.sections) == ["checked: Bread, Milk"])
+        defer { if model.hidesChecked { model.toggleHidingChecked() } }
+        model.add("milk, bread, eggs")
+        model.toggle(id("milk"))
+        #expect(drawn(model.sections) == ["bakery: Bread", "dairy: Eggs, Milk"])
 
-        model.add("milk")
-        #expect(drawn(model.sections) == ["dairy: Milk", "checked: Bread"])
+        model.toggleHidingChecked()
+        #expect(drawn(model.sections) == ["bakery: Bread", "dairy: Eggs"])
+        model.toggle(id("bread"))
+        #expect(drawn(model.sections) == ["bakery: Bread", "dairy: Eggs"])
+
+        model.toggleHidingChecked()
+        #expect(drawn(model.sections) == ["bakery: Bread", "dairy: Eggs, Milk"])
         model.clearChecked()
+        #expect(drawn(model.sections) == ["dairy: Eggs"])
         model.undo()
-        #expect(drawn(model.sections) == ["dairy: Milk", "checked: Bread"])
+        #expect(drawn(model.sections) == ["bakery: Bread", "dairy: Eggs, Milk"])
     }
 
     @Test func aRenameCanBeTakenBackAndAnAmountEditOffersNothing() throws {

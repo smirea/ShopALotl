@@ -1,22 +1,19 @@
 import SwiftUI
 
 /// What the add field offers while it has focus: the staples and past purchases before anything is typed, matches
-/// after. The best match sits at the bottom, next to the field and the thumb.
+/// after. The best match sits at the bottom, next to the field and the thumb. It is as tall as its rows, up to
+/// `maxHeight`, so the list stays in sight above it.
 struct SuggestionPanel: View {
     let model: ListModel
     @Binding var text: String
+    let maxHeight: CGFloat
+
+    @State private var contentHeight: CGFloat = 0
 
     var body: some View {
         let suggestions = model.suggestions(for: text)
         ScrollView {
-            LazyVStack(spacing: 0) {
-                if suggestions.isEmpty {
-                    Text(hint)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(24)
-                }
+            VStack(spacing: 0) {
                 ForEach(suggestions.reversed()) { suggestion in
                     SuggestionRow(suggestion: suggestion, aisle: aisle(of: suggestion)) {
                         model.pick(suggestion, typed: text)
@@ -30,17 +27,14 @@ struct SuggestionPanel: View {
                     Divider().padding(.leading, 52)
                 }
             }
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
         }
         .defaultScrollAnchor(.bottom)
         .scrollDismissesKeyboard(.never)
-        .background(.background)
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(height: min(contentHeight, maxHeight))
+        .background(.bar)
         .feedback(self)
-    }
-
-    private var hint: String {
-        let count = EntryParser.entries(in: text).count
-        if count > 1 { return "Return adds \(count) items." }
-        return "Type a name, or several separated by commas. What you buy often shows up here."
     }
 
     private func aisle(of suggestion: Suggestion) -> Category? {
@@ -96,7 +90,7 @@ private struct SuggestionRow: View {
     private var detail: String? {
         switch suggestion.status {
         case .onList: "On the list"
-        case .checked: "Checked off. Tap to need it again."
+        case .checked: "Checked"
         case .typed: nil
         case .catalog, .remembered: aisle?.title
         }

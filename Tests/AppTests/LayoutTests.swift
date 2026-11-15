@@ -14,12 +14,24 @@ import Testing
         return ListSnapshot(list: list, items: items, answers: answers)
     }
 
-    @Test func itemsGroupUnderAislesInStoreOrderByNameWithCheckedLast() {
+    @Test func itemsGroupUnderAislesInStoreOrderByNameWithCheckedOnesInPlace() {
         let items = [
             item("Milk"), item("Bananas"), item("apples"), item("Eggs", state: .checked, bought: [5]),
             item("Bread", state: .checked, bought: [9]), item("Rice", state: .off, bought: [1]),
         ]
-        #expect(drawn(Layout.sections(snapshot(items))) == ["produce: apples, Bananas", "dairy: Milk", "checked: Bread, Eggs"])
+        #expect(drawn(Layout.sections(snapshot(items))) == ["produce: apples, Bananas", "bakery: Bread", "dairy: Eggs, Milk"])
+    }
+
+    @Test func hidingCheckedLeavesOutCheckedRowsAndTheirEmptyAisles() {
+        let items = [item("Milk"), item("Eggs", state: .checked, bought: [5]), item("Bread", state: .checked, bought: [9])]
+        #expect(drawn(Layout.sections(snapshot(items), hidingChecked: true)) == ["dairy: Milk"])
+    }
+
+    @Test func aRowCheckedWhileHidingStaysDrawnUntilTheScreenSettles() {
+        let held = Layout.ideal(snapshot([item("Milk"), item("Eggs")]), hidingChecked: true)
+        let after = snapshot([item("Milk", state: .checked, bought: [1]), item("Eggs")])
+        #expect(drawn(Layout.sections(after, held: held, hidingChecked: true)) == ["dairy: Eggs, Milk"])
+        #expect(drawn(Layout.sections(after, hidingChecked: true)) == ["dairy: Eggs"])
     }
 
     @Test func aListsOwnAisleOrderComesFirst() {
@@ -29,7 +41,7 @@ import Testing
 
     @Test func aPlainListKeepsAddedOrderWithoutAisles() {
         let items = [item("Tent", added: 2), item("Bananas", added: 1), item("Stove", state: .checked, added: 0, bought: [3])]
-        #expect(drawn(Layout.sections(snapshot(items, grouping: .none))) == ["plain: Bananas, Tent", "checked: Stove"])
+        #expect(drawn(Layout.sections(snapshot(items, grouping: .none))) == ["plain: Stove, Bananas, Tent"])
     }
 
     @Test func aRowStaysWhereItWasDrawnUntilTheScreenSettles() {
@@ -40,7 +52,7 @@ import Testing
         let key = NameKey("Flux capacitor")!
         let after = snapshot([item("Milk", state: .checked, bought: [1]), item("Flux capacitor"), item("Eggs")], answers: [key: CategoryAnswers(model: .pantry)])
         #expect(drawn(Layout.sections(after, held: held)) == ["dairy: Eggs, Milk", "other: Flux capacitor"])
-        #expect(drawn(Layout.sections(after)) == ["dairy: Eggs", "pantry: Flux capacitor", "checked: Milk"])
+        #expect(drawn(Layout.sections(after)) == ["dairy: Eggs, Milk", "pantry: Flux capacitor"])
     }
 
     @Test func aHeldRowThatLeftTheListIsNotDrawn() {
