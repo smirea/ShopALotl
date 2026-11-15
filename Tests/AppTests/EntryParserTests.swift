@@ -25,6 +25,13 @@ import Testing
         #expect(parsed("2 cans chickpeas") == ["Chickpeas|2 cans|"])
     }
 
+    @Test func aCommaInsideALeadingNumberIsADecimalCommaAndAnyOtherCommaSplits() {
+        #expect(parsed("1,5 kg potatoes") == ["Potatoes|1,5 kg|"])
+        #expect(parsed("milk, 1,5 kg potatoes") == ["Milk||", "Potatoes|1,5 kg|"])
+        #expect(parsed("eggs x12,2 milk") == ["Eggs|12|", "Milk|2|"])
+        #expect(parsed("milk,2 eggs") == ["Milk||", "Eggs|2|"])
+    }
+
     @Test func aTrailingMultiplierIsTheQuantity() {
         #expect(parsed("eggs x12") == ["Eggs|12|"])
         #expect(parsed("Eggs ×12") == ["Eggs|12|"])

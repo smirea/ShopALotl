@@ -50,27 +50,28 @@ extension LocalStore {
         }
     }
 
-    /// Returns the item's id after the edit, which differs when the name's key changed, or nil when the name is empty.
+    /// Changes the fields that are not nil. A name with another key moves the item to that key's row, so the change
+    /// then holds two rows. A name without a key changes nothing.
     @discardableResult
-    func edit(_ id: ItemID, name: String, quantity: String, note: String) -> ItemID? {
-        guard let key = NameKey(name) else { return nil }
-        let target = ItemID(listID: id.listID, key: key)
+    func edit(_ id: ItemID, name: String? = nil, quantity: String? = nil, note: String? = nil) -> ItemChange {
         change { db, change in
             guard let item = try Item.fetchOne(db, key: id.text) else { return }
+            let target = ItemID(listID: id.listID, key: name.flatMap { NameKey($0) } ?? id.key)
             let existing = target == id ? nil : try Item.fetchOne(db, key: target.text)
             guard let edit = Edits.edited(item, name: name, quantity: quantity, note: note, existingAtNewKey: existing) else { return }
             try Self.apply(db, id, to: &change) { _ in edit.old }
             try Self.apply(db, target, to: &change) { _ in edit.new }
         }
-        return target
     }
 
-    /// Puts back what `change` replaced, row by row. A row that no longer holds what the change wrote is left alone,
-    /// so undo does not overwrite a newer change this device already has, and running it twice changes nothing more.
-    /// A change another device made and has not synced yet still loses to the undo, as to any later write.
-    func undo(_ undone: ItemChange) {
+    /// Puts back what `change` replaced, row by row, newest first, because one change can touch a row twice. A row
+    /// that no longer holds what the change wrote is left alone, so undo does not overwrite a newer change this
+    /// device already has, and running it twice changes nothing more. A change another device made and has not
+    /// synced yet still loses to the undo, as to any later write.
+    @discardableResult
+    func undo(_ undone: ItemChange) -> ItemChange {
         change { db, change in
-            for row in undone.rows {
+            for row in undone.rows.reversed() {
                 try Self.apply(db, row.id, to: &change) { $0 == row.after ? row.before : $0 }
             }
         }
@@ -98,7 +99,8 @@ extension LocalStore {
     }
 
     /// Writes the row `transform` makes of the current one, as the smallest write: an insert, a delete, or an update
-    /// of the columns that differ, which syncs as one patch.
+    /// of the columns that differ, which syncs as one patch. The change records the row as the database now reads
+    /// it, because a row keeps whole milliseconds and undo compares against what it reads later.
     private nonisolated static func apply(_ db: Database, _ id: ItemID, to change: inout ItemChange, _ transform: (Item?) -> Item?) throws {
         let before = try Item.fetchOne(db, key: id.text)
         let after = transform(before)
@@ -109,6 +111,6 @@ extension LocalStore {
         case let (before?, nil): try before.delete(db)
         case (nil, nil): break
         }
-        change.rows.append(.init(id: id, before: before, after: after))
+        change.rows.append(.init(id: id, before: before, after: try Item.fetchOne(db, key: id.text)))
     }
 }

@@ -1,8 +1,17 @@
+import Foundation
 import GRDB
 import Testing
 @testable import App
 
 @MainActor @Suite struct RecordTests {
+    @Test func anInstantKeepsItsMillisecondHoweverOftenItIsReadAndWritten() throws {
+        for millisecond in 0..<2000 {
+            let text = Instant.text(Date(timeIntervalSince1970: 1_794_702_639 + Double(millisecond) / 1000))
+            #expect(Instant.text(try #require(Instant.parse(text))) == text)
+        }
+        #expect(Instant.text(Date(timeIntervalSince1970: 1_794_702_639.0026)) == "2026-11-15T00:30:39.003Z")
+    }
+
     @Test func anItemReadsBackAsWritten() throws {
         let store = try makeStore()
         let item = Item(

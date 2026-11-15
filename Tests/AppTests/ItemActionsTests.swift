@@ -90,10 +90,39 @@ import Testing
         _ = add("milk")
         store.toggleChecked(id("milk"), at: .at(0))
         store.toggleChecked(id("milk"), at: .at(7 * 3600))
-        let moved = store.edit(id("milk"), name: "Oat milk", quantity: "2", note: "")
-        #expect(moved == id("oat milk"))
+        let moved = store.edit(id("milk"), name: "Oat milk", quantity: "2")
+        #expect(moved.rows.map(\.id) == [id("milk"), id("oat milk")])
         #expect(try items() == ["Oat milk needed ×2 bought:1"])
-        #expect(store.edit(id("oat milk"), name: "  ", quantity: "", note: "") == nil)
+        #expect(store.edit(id("oat milk"), name: "  ").isEmpty)
+        #expect(try items() == ["Oat milk needed ×2 bought:1"])
+    }
+
+    @Test func anEditWritesOnlyTheFieldsItNamesSoAnotherDevicesEditOfTheRestSurvives() throws {
+        _ = add("2 milk")
+        try store.database.pool.write { try $0.execute(sql: "DELETE FROM _outbox") }
+        store.edit(id("milk"), note: "lactose free")
+        let columns = try store.database.pool.read { try String.fetchAll($0, sql: "SELECT col FROM _outbox ORDER BY col") }
+        #expect(columns == ["note"])
+        #expect(try items() == ["Milk needed ×2 bought:0"])
+    }
+
+    @Test func undoOfAnAddThatNamedAnItemTwiceLeavesNothing() throws {
+        let added = store.add(EntryParser.entries(in: "milk, 2 milk"), to: list, at: Date(timeIntervalSince1970: 1_794_702_639.0026))
+        #expect(try items() == ["Milk needed ×2 bought:0"])
+        store.undo(added)
+        store.undo(added)
+        #expect(try items() == [])
+    }
+
+    @Test func undoOfARenameOntoARememberedItemPutsBothRowsBack() throws {
+        _ = add("3 milk, mlik")
+        store.toggleChecked(id("milk"), at: .at(1))
+        store.clearChecked(in: list)
+        let before = try items()
+        let renamed = store.edit(id("mlik"), name: "milk")
+        #expect(try items() == ["milk needed bought:1"])
+        store.undo(renamed)
+        #expect(try items() == before)
     }
 
     @Test func aCheckSyncsAsOnePatchOfTheTwoColumnsItChanged() throws {

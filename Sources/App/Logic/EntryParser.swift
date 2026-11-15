@@ -21,15 +21,19 @@ enum EntryParser {
         segments(of: text).compactMap(entry)
     }
 
-    /// Splits on commas, semicolons, and line breaks, except inside parentheses, where a note may hold them.
+    /// Splits on commas, semicolons, and line breaks, except inside parentheses, where a note may hold them. A comma
+    /// between digits at the start of an entry is a decimal comma: "1,5 kg potatoes" is one entry.
     private static func segments(of text: String) -> [String] {
         var segments: [String] = []
         var current = ""
         var depth = 0
-        for character in text {
+        for (index, character) in zip(text.indices, text) {
             if character == "(" { depth += 1 }
             if character == ")" { depth = max(0, depth - 1) }
-            if depth == 0, character == "," || character == ";" || character.isNewline {
+            let next = text[text.index(after: index)...].first
+            let isDecimalComma = character == "," && next?.isNumber == true
+                && current.contains(where: \.isNumber) && current.allSatisfy { $0.isNumber || $0 == " " }
+            if depth == 0, !isDecimalComma, character == "," || character == ";" || character.isNewline {
                 segments.append(current)
                 current = ""
             } else {

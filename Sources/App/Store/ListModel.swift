@@ -7,7 +7,8 @@ import SwiftUI
 ///
 /// A gesture writes to the store and re-reads the list in the same turn, so the screen changes before the tap ends.
 /// Rows hold still in between: a row keeps the section it was drawn in (`held`) until the list has been left alone
-/// for `settleDelay`, so a checked row is struck through in place and a late category answer waits its turn.
+/// for `settleDelay`, so a checked row is struck through in place and a late category answer waits its turn. Only
+/// the rows a gesture is about move at once: an added row, an edited one, one the owner refiled or brought back.
 @MainActor @Observable
 final class ListModel {
     static let settleDelay: Duration = .milliseconds(1500)
@@ -23,6 +24,9 @@ final class ListModel {
         let message: String
         let change: ItemChange
     }
+
+    /// Called when the list no longer exists, such as after another device deleted it.
+    @ObservationIgnored var onGone: () -> Void = {}
 
     @ObservationIgnored private let store: LocalStore
     @ObservationIgnored private var held: [ItemID: SectionID] = [:]
@@ -69,8 +73,7 @@ final class ListModel {
     func add(_ text: String) -> Bool {
         let entries = EntryParser.entries(in: text)
         guard !entries.isEmpty else { return false }
-        store.add(entries, to: listID)
-        reload(settle: true)
+        reload(releasing: store.add(entries, to: listID))
         return true
     }
 
@@ -78,8 +81,7 @@ final class ListModel {
     func pick(_ suggestion: Suggestion, typed text: String) {
         let typed = EntryParser.entries(in: text).first
         let entry = Entry(key: suggestion.key, name: suggestion.name, quantity: typed?.quantity ?? "", note: typed?.note ?? "")
-        store.add([entry], to: listID)
-        reload(settle: true)
+        reload(releasing: store.add([entry], to: listID))
     }
 
     func toggle(_ id: ItemID) {
@@ -90,13 +92,13 @@ final class ListModel {
     func remove(_ id: ItemID) {
         guard let item = item(id) else { return }
         offerUndo(of: store.remove(id), "Removed \(item.name)")
-        reload(settle: true)
+        reload()
     }
 
     func clearChecked() {
         let change = store.clearChecked(in: listID)
         offerUndo(of: change, "Cleared \(change.rows.count) \(change.rows.count == 1 ? "item" : "items")")
-        reload(settle: true)
+        reload()
     }
 
     func forget(_ suggestion: Suggestion) {
@@ -106,19 +108,21 @@ final class ListModel {
 
     func setCategory(_ category: Category, of id: ItemID) {
         store.setCategory(category, for: id.key)
-        reload(settle: true)
+        held[id] = nil
+        reload()
     }
 
-    func edit(_ id: ItemID, name: String, quantity: String, note: String) {
-        store.edit(id, name: name, quantity: quantity, note: note)
-        reload(settle: true)
+    /// Changes the fields that are not nil. A rename replaces the item's row, so it can be taken back.
+    func edit(_ id: ItemID, name: String? = nil, quantity: String? = nil, note: String? = nil) {
+        let change = store.edit(id, name: name, quantity: quantity, note: note)
+        if let renamed = change.rows.last?.after, renamed.id != id { offerUndo(of: change, "Renamed to \(renamed.name)") }
+        reload(releasing: change)
     }
 
     func undo() {
         guard let undoable else { return }
-        store.undo(undoable.change)
         self.undoable = nil
-        reload(settle: true)
+        reload(releasing: store.undo(undoable.change))
     }
 
     /// The owner touched or scrolled the list, so rows stay put a while longer.
@@ -127,19 +131,21 @@ final class ListModel {
         if settling != nil { scheduleSettle() }
     }
 
-    private func reload(settle: Bool = false) {
+    /// Redraws after a gesture. The rows `change` wrote go where they now belong, and every other row stays put.
+    private func reload(releasing change: ItemChange = ItemChange()) {
         touch()
-        guard let fresh = try? store.database.pool.read({ try ListSnapshot.fetch($0, listID: listID) }) else { return }
-        if settle { held = [:] }
-        withAnimation(.snappy(duration: 0.25)) {
-            snapshot = fresh
-            draw()
+        for row in change.rows { held[row.id] = nil }
+        do {
+            receive(try store.database.pool.read { try ListSnapshot.fetch($0, listID: listID) })
+        } catch {
+            LocalStore.log.error("Reading list \(self.listID) failed: \(String(describing: error))")
         }
     }
 
-    /// A change from the database: this screen's own write, already drawn, or one from a sync or the category model.
+    /// A change from the database: this screen's own write, or one from a sync or the category model.
     private func receive(_ fresh: ListSnapshot?) {
-        guard let fresh, fresh != snapshot else { return }
+        guard let fresh else { return onGone() }
+        guard fresh != snapshot else { return }
         withAnimation(.snappy(duration: 0.25)) {
             snapshot = fresh
             draw()

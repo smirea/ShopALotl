@@ -10,7 +10,8 @@ struct ItemEditor: View {
     @State private var quantity: String
     @State private var note: String
     @State private var category: Category?
-    private let original: Category?
+    private let original: Item
+    private let originalCategory: Category?
 
     init?(model: ListModel, id: ItemID) {
         guard let item = model.item(id) else { return nil }
@@ -19,8 +20,9 @@ struct ItemEditor: View {
         _name = State(initialValue: item.name)
         _quantity = State(initialValue: item.quantity)
         _note = State(initialValue: item.note)
-        original = Layout.placement(of: item, in: model.snapshot)?.category
-        _category = State(initialValue: original)
+        original = item
+        originalCategory = Layout.placement(of: item, in: model.snapshot)?.category
+        _category = State(initialValue: originalCategory)
     }
 
     var body: some View {
@@ -73,11 +75,17 @@ struct ItemEditor: View {
         return Binding(get: { parts.first.flatMap { Int($0) } ?? 1 }, set: { quantity = "\($0)\(unit)" })
     }
 
+    /// Writes only the fields the owner changed, so one another device changed meanwhile is kept.
     private func save() {
-        if let category, category != original, let key = NameKey(name) {
+        if let category, category != originalCategory, let key = NameKey(name) {
             model.setCategory(category, of: ItemID(listID: id.listID, key: key))
         }
-        model.edit(id, name: name, quantity: quantity.trimmingCharacters(in: .whitespaces), note: note.trimmingCharacters(in: .whitespaces))
+        let quantity = quantity.trimmingCharacters(in: .whitespaces)
+        let note = note.trimmingCharacters(in: .whitespaces)
+        model.edit(
+            id, name: name == original.name ? nil : name, quantity: quantity == original.quantity ? nil : quantity,
+            note: note == original.note ? nil : note
+        )
         dismiss()
     }
 }

@@ -12,3 +12,15 @@ extension Date {
     /// Whole milliseconds, which is what a row keeps.
     static func at(_ seconds: TimeInterval) -> Date { Date(timeIntervalSince1970: 1_800_000_000 + seconds) }
 }
+
+/// Sections as text, one "<section>: <names>" per section.
+func drawn(_ sections: [ListSection]) -> [String] {
+    sections.map { section in
+        let title = switch section.id {
+        case let .aisle(category): category.rawValue
+        case .plain: "plain"
+        case .checked: "checked"
+        }
+        return "\(title): \(section.rows.map(\.item.name).joined(separator: ", "))"
+    }
+}

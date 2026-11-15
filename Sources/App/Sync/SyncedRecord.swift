@@ -19,7 +19,12 @@ struct RowDecodingError: Error, CustomStringConvertible {
 enum Instant {
     private static let style = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
 
-    static func text(_ date: Date) -> String { date.formatted(style) }
+    /// Rounds to the millisecond. The format style cuts the fraction off instead, and a parsed instant sits a hair
+    /// under its millisecond, so without the rounding a row lost a millisecond each time it was read and written.
+    static func text(_ date: Date) -> String {
+        let milliseconds = (date.timeIntervalSince1970 * 1000).rounded()
+        return Date(timeIntervalSince1970: (milliseconds + 0.5) / 1000).formatted(style)
+    }
 
     static func parse(_ text: String) -> Date? { try? style.parse(text) }
 }

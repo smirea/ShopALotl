@@ -2,24 +2,25 @@ import Foundation
 import Testing
 @testable import App
 
-/// A gesture writes and re-reads the list before the tap ends, so that round trip has to fit inside a frame.
+/// A gesture writes and re-reads the list before the tap ends, so that round trip has to fit inside a frame. It
+/// covers the write, the re-read, and the layout `ListModel` does. SwiftUI's own drawing is not in it.
 @MainActor @Suite struct GestureTimingTests {
     @Test func aCheckOnALongListWritesAndRedrawsWithinAFrame() throws {
         let store = try makeStore()
         let list = ShoppingList.main.id
         let names = Catalog.shared.products.prefix(300).map(\.name)
         store.add(names.compactMap { EntryParser.entries(in: $0).first }, to: list)
-        let ids = try #require(try store.database.pool.read { try ListSnapshot.fetch($0, listID: list) }).items.map(\.id)
+        let model = try #require(ListModel(listID: list, store: store))
+        let ids = model.snapshot.items.map(\.id)
         #expect(ids.count == 300)
 
         let clock = ContinuousClock()
         var times: [Duration] = []
         var drawn = 0
         for id in ids.prefix(100) {
-            times.append(try clock.measure {
-                store.toggleChecked(id)
-                let snapshot = try #require(try store.database.pool.read { try ListSnapshot.fetch($0, listID: list) })
-                drawn += Layout.sections(snapshot).reduce(0) { $0 + $1.rows.count }
+            times.append(clock.measure {
+                model.toggle(id)
+                drawn += model.sections.reduce(0) { $0 + $1.rows.count }
             })
         }
         let checked = try store.database.pool.read { try Int.fetchOne($0, sql: "SELECT COUNT(*) FROM items WHERE state = 'checked'") }

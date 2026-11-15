@@ -52,18 +52,20 @@ enum Edits {
         return item
     }
 
-    /// The rows after an edit. A new name with another key moves the item to that key's row, with the purchases of
-    /// both, because the id holds the key.
-    static func edited(_ item: Item, name: String, quantity: String, note: String, existingAtNewKey: Item?) -> (old: Item?, new: Item)? {
-        guard let key = NameKey(name) else { return nil }
-        let name = name.trimmingCharacters(in: .whitespaces)
+    /// The rows after an edit. Nil leaves a field as the row has it now, so a field another device changed while the
+    /// editor was open survives. A new name with another key moves the item to that key's row, with the purchases
+    /// of both, because the id holds the key.
+    static func edited(_ item: Item, name: String?, quantity: String?, note: String?, existingAtNewKey: Item?) -> (old: Item?, new: Item)? {
         var edited = item
-        (edited.name, edited.quantity, edited.note) = (name, quantity, note)
+        if let name { edited.name = name.trimmingCharacters(in: .whitespaces) }
+        if let quantity { edited.quantity = quantity }
+        if let note { edited.note = note }
+        guard let key = NameKey(edited.name) else { return nil }
         guard key != item.id.key else { return (edited, edited) }
         let bought = Array(Set(item.bought + (existingAtNewKey?.bought ?? [])).sorted().suffix(Item.maxBought))
         let moved = Item(
-            id: ItemID(listID: item.id.listID, key: key), name: name, state: item.state, quantity: quantity, note: note,
-            addedAt: item.addedAt, bought: bought
+            id: ItemID(listID: item.id.listID, key: key), name: edited.name, state: item.state, quantity: edited.quantity,
+            note: edited.note, addedAt: item.addedAt, bought: bought
         )
         return (nil, moved)
     }

@@ -7,17 +7,6 @@ import Testing
         Item(id: ItemID(listID: "main", key: NameKey(name)!), name: name, state: state, addedAt: .at(added), bought: bought.map(Date.at))
     }
 
-    private func drawn(_ sections: [ListSection]) -> [String] {
-        sections.map { section in
-            let title = switch section.id {
-            case let .aisle(category): category.rawValue
-            case .plain: "plain"
-            case .checked: "checked"
-            }
-            return "\(title): \(section.rows.map(\.item.name).joined(separator: ", "))"
-        }
-    }
-
     private func snapshot(_ items: [Item], grouping: Grouping = .category, order: [App.Category] = [], answers: [NameKey: CategoryAnswers] = [:]) -> ListSnapshot {
         var list = ShoppingList.main
         list.grouping = grouping
