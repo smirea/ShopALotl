@@ -38,13 +38,9 @@ struct AddBar: View {
                     .accessibilityHidden(true)
                 TextField("Add item", text: $text)
                     .focused(isFocused)
-                    .submitLabel(.done)
+                    .submitLabel(.return)
                     .onSubmit(submit)
                     .accessibilityHint("Separate several items with commas")
-                if isFocused.wrappedValue {
-                    Button("Done") { isFocused.wrappedValue = false }
-                        .font(.body.weight(.semibold))
-                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 11)

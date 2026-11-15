@@ -23,8 +23,6 @@ struct ListsEditor: View {
                 Section {
                     Button { create(.category) } label: { Label("New Shopping List", systemImage: "cart.badge.plus") }
                     Button { create(.none) } label: { Label("New Plain List", systemImage: "plus") }
-                } footer: {
-                    Text("A shopping list sorts items by aisle. A plain list, such as a packing list, keeps the order you add them in.")
                 }
                 Section("Sync") {
                     LabeledContent("Status", value: syncStatus)
@@ -115,8 +113,6 @@ struct ListSettings: View {
                         }
                 } header: {
                     Text("Aisle Order")
-                } footer: {
-                    Text("Drag the aisles into the order you walk this store.")
                 }
             }
             if list.id != ShoppingList.main.id {

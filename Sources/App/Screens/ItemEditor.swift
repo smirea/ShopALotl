@@ -42,8 +42,6 @@ struct ItemEditor: View {
                         Picker("Aisle", selection: $category) {
                             ForEach(model.list.aisles) { Label($0.title, systemImage: $0.symbol).tag(Optional($0)) }
                         }
-                    } footer: {
-                        Text("Changing the aisle files this name there on every list.")
                     }
                 }
                 Section {

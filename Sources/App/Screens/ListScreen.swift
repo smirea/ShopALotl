@@ -11,6 +11,7 @@ struct ListScreen: View {
     @FocusState private var isAdding: Bool
     @State private var editing: ItemID?
     @State private var managingLists = false
+    @State private var height: CGFloat = 0
 
     var body: some View {
         NavigationStack {
@@ -20,11 +21,13 @@ struct ListScreen: View {
                         if model.isEmpty { emptyState } else { list }
                     }
                     .accessibilityHidden(isAdding)
-                    if isAdding { SuggestionPanel(model: model, text: $text) }
+                    if isAdding { closer }
                     if let undoable = model.undoable, !isAdding { UndoToast(undoable: undoable, undo: model.undo) }
                 }
+                if isAdding { SuggestionPanel(model: model, text: $text, maxHeight: height * 0.4) }
                 AddBar(model: model, text: $text, isFocused: $isAdding)
             }
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
             .navigationTitle(model.list.name)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -40,6 +43,13 @@ struct ListScreen: View {
             .toolbar {
                 if model.checkedCount > 0 {
                     ToolbarItem(placement: .primaryAction) {
+                        Button(
+                            model.hidesChecked ? "Show Checked" : "Hide Checked",
+                            systemImage: model.hidesChecked ? "eye.slash" : "eye",
+                            action: model.toggleHidingChecked
+                        )
+                    }
+                    ToolbarItem(placement: clearPlacement) {
                         Button("Clear \(model.checkedCount)", action: model.clearChecked)
                             .accessibilityLabel("Clear \(model.checkedCount) checked \(model.checkedCount == 1 ? "item" : "items")")
                     }
@@ -53,22 +63,46 @@ struct ListScreen: View {
         .feedback(self)
     }
 
+    /// Two controls on one side push the title off center, so it would jump on the first check.
+    private var clearPlacement: ToolbarItemPlacement {
+        #if os(iOS)
+        .topBarLeading
+        #else
+        .automatic
+        #endif
+    }
+
     private var list: some View {
-        List {
-            ForEach(model.sections) { section in
-                Section {
-                    ForEach(section.rows) { row in
-                        ItemRowView(row: row, aisles: model.list.aisles, model: model) { editing = row.id }
+        ScrollViewReader { scroller in
+            List {
+                ForEach(model.sections) { section in
+                    Section {
+                        ForEach(section.rows) { row in
+                            ItemRowView(row: row, aisles: model.list.aisles, model: model) { editing = row.id }
+                        }
+                    } header: {
+                        header(of: section.id)
                     }
-                } header: {
-                    header(of: section.id)
                 }
             }
+            .listStyle(.plain)
+            .onScrollPhaseChange { _, phase in
+                if phase != .idle { model.touch() }
+            }
+            .onChange(of: model.landed) { _, landed in
+                guard let last = landed?.rows.last else { return }
+                withAnimation(.snappy) { scroller.scrollTo(last, anchor: .center) }
+            }
         }
-        .listStyle(.plain)
-        .onScrollPhaseChange { _, phase in
-            if phase != .idle { model.touch() }
+    }
+
+    /// The list stays in sight while adding, and a tap on it closes the keyboard and the suggestions.
+    private var closer: some View {
+        Button { isAdding = false } label: {
+            Color.clear.contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Close")
     }
 
     @ViewBuilder
@@ -79,7 +113,6 @@ struct ListScreen: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(category.title)
                 .accessibilityAddTraits(.isHeader)
-        case .checked: Text("Checked").accessibilityAddTraits(.isHeader)
         case .plain: EmptyView()
         }
     }
@@ -93,9 +126,6 @@ struct ListScreen: View {
                 .accessibilityHidden(true)
             Text("Nothing on the list")
                 .font(.title2.bold())
-            Text("Type below to add an item, or several separated by commas.")
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
         }
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

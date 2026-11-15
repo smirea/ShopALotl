@@ -7,17 +7,30 @@ import SwiftUI
 ///
 /// A gesture writes to the store and re-reads the list in the same turn, so the screen changes before the tap ends.
 /// Rows hold still in between: a row keeps the section it was drawn in (`held`) until the list has been left alone
-/// for `settleDelay`, so a checked row is struck through in place and a late category answer waits its turn. Only
-/// the rows a gesture is about move at once: an added row, an edited one, one the owner refiled or brought back.
+/// for `settleDelay`, so a late category answer waits its turn and a row checked while checked rows are hidden stays
+/// in sight a moment. Only the rows a gesture is about move at once: an added row, an edited one, one the owner
+/// refiled or brought back.
 @MainActor @Observable
 final class ListModel {
     static let settleDelay: Duration = .milliseconds(1500)
+    private static let hidesCheckedKey = "hidesChecked"
 
     let listID: String
     private(set) var snapshot: ListSnapshot
     private(set) var sections: [ListSection] = []
     /// The last gesture that can be taken back, shown as a toast until it expires.
     private(set) var undoable: Undoable?
+    /// Checked rows stay on the list but out of sight. Shared by every list on this device.
+    private(set) var hidesChecked = UserDefaults.standard.bool(forKey: ListModel.hidesCheckedKey)
+    /// The last add, set once its rows have animated in: a List ignores a scroll to a row while it is still
+    /// animating the row in.
+    private(set) var landed: Landing?
+
+    /// Each add is its own, so adding the same name twice brings it into view twice.
+    struct Landing: Equatable {
+        let id = UUID()
+        let rows: [ItemID]
+    }
 
     struct Undoable: Equatable {
         let id = UUID()
@@ -73,7 +86,7 @@ final class ListModel {
     func add(_ text: String) -> Bool {
         let entries = EntryParser.entries(in: text)
         guard !entries.isEmpty else { return false }
-        reload(releasing: store.add(entries, to: listID))
+        land(entries)
         return true
     }
 
@@ -81,12 +94,26 @@ final class ListModel {
     func pick(_ suggestion: Suggestion, typed text: String) {
         let typed = EntryParser.entries(in: text).first
         let entry = Entry(key: suggestion.key, name: suggestion.name, quantity: typed?.quantity ?? "", note: typed?.note ?? "")
-        reload(releasing: store.add([entry], to: listID))
+        land([entry])
+    }
+
+    /// An entry already on the list writes nothing, and is still brought into view.
+    private func land(_ entries: [Entry]) {
+        let landing = Landing(rows: entries.map { ItemID(listID: listID, key: $0.key) })
+        reload(releasing: store.add(entries, to: listID)) { [weak self] in self?.landed = landing }
     }
 
     func toggle(_ id: ItemID) {
         store.toggleChecked(id)
         reload()
+    }
+
+    /// Unlike a check, this moves rows at once: the owner asked for exactly that.
+    func toggleHidingChecked() {
+        hidesChecked.toggle()
+        UserDefaults.standard.set(hidesChecked, forKey: Self.hidesCheckedKey)
+        held = held.filter { id, _ in item(id)?.state != .checked }
+        withAnimation(.snappy(duration: 0.25)) { draw() }
     }
 
     func remove(_ id: ItemID) {
@@ -132,30 +159,33 @@ final class ListModel {
     }
 
     /// Redraws after a gesture. The rows `change` wrote go where they now belong, and every other row stays put.
-    private func reload(releasing change: ItemChange = ItemChange()) {
+    private func reload(releasing change: ItemChange = ItemChange(), then drawn: @escaping () -> Void = {}) {
         touch()
         for row in change.rows { held[row.id] = nil }
         do {
-            receive(try store.database.pool.read { try ListSnapshot.fetch($0, listID: listID) })
+            receive(try store.database.pool.read { try ListSnapshot.fetch($0, listID: listID) }, then: drawn)
         } catch {
             LocalStore.log.error("Reading list \(self.listID) failed: \(String(describing: error))")
         }
     }
 
     /// A change from the database: this screen's own write, or one from a sync or the category model.
-    private func receive(_ fresh: ListSnapshot?) {
+    private func receive(_ fresh: ListSnapshot?, then drawn: @escaping () -> Void = {}) {
         guard let fresh else { return onGone() }
-        guard fresh != snapshot else { return }
         withAnimation(.snappy(duration: 0.25)) {
+            guard fresh != snapshot else { return }
             snapshot = fresh
             draw()
+        } completion: {
+            drawn()
         }
     }
 
     private func draw() {
-        let ideal = Layout.ideal(snapshot)
-        held = held.filter { ideal[$0.key] != nil }.merging(ideal) { drawn, _ in drawn }
-        sections = Layout.sections(snapshot, held: held)
+        let ideal = Layout.ideal(snapshot, hidingChecked: hidesChecked)
+        let onList = Set(snapshot.items.lazy.filter(\.isOnList).map(\.id))
+        held = held.filter { onList.contains($0.key) }.merging(ideal) { drawn, _ in drawn }
+        sections = Layout.sections(snapshot, held: held, hidingChecked: hidesChecked)
         if held != ideal { scheduleSettle() }
     }
 
