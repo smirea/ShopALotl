@@ -21,3 +21,6 @@ Config/Env.xcconfig
 
 # the local server's SQLite file, one per checkout
 .data
+
+# the task orchestrator's session files
+.orchestrator

@@ -57,7 +57,12 @@
 - When you build or change a SwiftUI screen, row, card, or chart, follow Feedback's accessibility skill. Read the latest with `gh api repos/smirea/feedback-engine/contents/skills/feedback-accessibility/SKILL.md -H 'Accept: application/vnd.github.raw'`.
 - The editor's **GitHub Issue** entry posts to `POST /api/feedback` (`server/feedback.ts`), which files an issue in `smirea/ShopALotl` as the `smirea-ai` account, labeled `feedback`. The server needs `GITHUB_TOKEN`, that account's `gh auth token`.
 - Feedback needs UIKit. On macOS, `Sources/App/Support/FeedbackShim.swift` compiles its tags to nothing, so views stay shared.
-- The **ProcrastiMate** entry in the editor's Share menu comes from the `com.stefan.shared` keychain group in `Config/App.entitlements`. The simulator build is signed ad hoc so the group counts.
+
+# ProcrastiMate
+
+- The repo's tasks live in the ProcrastiMate project `ShopALotl`. `procrastimate tasks ShopALotl` lists them.
+- The **ProcrastiMate** entry in the Feedback editor's Share menu posts the feedback as a task with the annotated image and `feedback.json` attached. It comes from the `com.stefan.shared` keychain group in `Config/App.entitlements`, where ProcrastiMate keeps its session while it is signed in on the same device. The simulator build is signed ad hoc so the group counts. Without ProcrastiMate signed in, the sheet says so.
+- `/task-orchestrator` works the project's tasks through `.agents/task-orchestrator.md`. After changing that file, run `~/code/ai-files/skills/task-orchestrator/scripts/check-config.ts`.
 
 # README
 

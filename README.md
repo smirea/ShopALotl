@@ -38,4 +38,4 @@ bun run typecheck
 | `server` | The Worker, the local server, and `schema.ts`, the tables for both sides |
 | `scripts` | `run` (launcher), `icons` (renders the icon from `docs/assets/icon.svg`), `secrets.ts` (env-manager to Cloudflare and GitHub) |
 
-`AGENTS.md` covers the app's rules, sync, the environment, simulators, and Feedback. Shake the phone to send feedback.
+`AGENTS.md` covers the app's rules, sync, the environment, simulators, Feedback, and ProcrastiMate. Shake the phone to send feedback as an image, a GitHub issue, or a task in ProcrastiMate's `ShopALotl` project.
