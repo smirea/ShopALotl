@@ -1,14 +1,23 @@
 import Feedback
-import GRDB
 import SwiftUI
 
 @main
 struct ShopALotlApp: App {
     @State private var store: LocalStore
+    @State private var app: AppModel
+    private let inference: CategoryInference?
 
     init() {
         let store = LocalStore()
+        let app = AppModel(store: store)
         _store = State(initialValue: store)
+        _app = State(initialValue: app)
+        #if canImport(FoundationModels)
+        inference = CategoryInference(model: OnDeviceCategoryModel())
+        inference?.start(store: store)
+        #else
+        inference = nil
+        #endif
         #if canImport(UIKit)
         Feedback.enable()
         Feedback.webhooks = [
@@ -25,51 +34,19 @@ struct ShopALotlApp: App {
                 unsyncedChanges: store.unsyncedChanges, cursor: store.cursor
             )
         }
+        Feedback.context("List") {
+            (id: app.current.listID, name: app.current.list.name, grouping: app.current.list.grouping.rawValue, rows: app.current.snapshot.items.count)
+        }
         #endif
     }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ListScreen(model: app.current)
                 .environment(store)
+                .environment(app)
+                // The catalog's global accent alone left controls blue on iOS 27, so the tint is set here too.
+                .tint(Color("AccentColor"))
         }
-    }
-}
-
-struct ContentView: View {
-    @Environment(LocalStore.self) private var store
-    @Observe(DatabaseQuery([Item]()) { try Item.readable($0, sql: "SELECT * FROM items WHERE state != 'off' ORDER BY added_at") })
-    private var items
-    @State private var text = ""
-
-    var body: some View {
-        NavigationStack {
-            List(items) { item in
-                Button {
-                    store.write { db in
-                        var changed = item
-                        changed.state = item.state == .checked ? .needed : .checked
-                        try changed.updateChanges(db, from: item)
-                    }
-                } label: {
-                    Label(item.name, systemImage: item.state == .checked ? "checkmark.circle.fill" : "circle")
-                }
-            }
-            .navigationTitle(ShoppingList.main.name)
-            .safeAreaInset(edge: .bottom) {
-                TextField("Add item", text: $text)
-                    .textFieldStyle(.roundedBorder)
-                    .padding()
-                    .onSubmit(add)
-            }
-        }
-        .feedback(self)
-    }
-
-    private func add() {
-        guard let key = NameKey(text) else { return }
-        let item = Item(id: ItemID(listID: ShoppingList.main.id, key: key), name: text.trimmingCharacters(in: .whitespaces), addedAt: .now)
-        store.write { try item.save($0) }
-        text = ""
     }
 }

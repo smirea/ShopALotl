@@ -22,6 +22,16 @@
 - Build errors leave the watcher running; fix the error and save again. Build output is in `DerivedData/device/build.log`, `DerivedData/simulator/build.log`, or `DerivedData/mac/build.log`.
 - `swift build` checks the shared code on macOS. Use the Xcode project for simulator builds and bundled resources; `swift run` launches the macOS executable.
 
+# App
+
+- The app is one screen, `Sources/App/Screens/ListScreen.swift`: a list, an add bar pinned to the bottom, and the list switcher behind the title. Simplicity, efficiency, and performance are the product's goals, so count taps before adding a step to adding, checking, editing, or removing an item.
+- `Sources/App/Logic` holds the rules as pure functions over values, with tests in `Tests/AppTests`: `EntryParser` (typed text to entries), `Edits` (what each gesture does to a row), `Categorizer` and `Catalog` (which aisle a name belongs to), `Suggestions` and `Habit` (what to offer), and `Layout` (rows into sections). Put new behavior there first and test it there.
+- `Sources/App/Store` writes: `ItemActions` and `ListActions` are the only code that changes rows, and every item change goes through `apply`, which records it for undo. `ListModel` is one open list: a gesture writes, re-reads, and redraws in the same turn, with no optimistic copy.
+- Rows hold still. A row keeps the section it was drawn in until 1.5 seconds after the last touch (`ListModel.settleDelay`), so a checked row is struck through in place and a late category answer waits. Do not move a row under the finger.
+- An item has no category. `Categorizer.place` reads the owner's answer, then the catalog's entry for the whole name, then the on-device model's stored answer, then a guess from part of the name. `CategoryInference` asks the model (FoundationModels) only about guesses and stores its answer in `item_categories` as source `model`. The owner's answer has its own row, so nothing overwrites it.
+- An item row is the list entry, the autocomplete entry, and the purchase history at once. Taking an item off the list sets `state = 'off'`. Suggestions and the due rail come from each row's `bought` instants.
+- Performance: the hot paths (a keystroke in the add field, an add, a check) do no async work before the screen updates. `GestureTimingTests` fails when a check's write and redraw on a 300-item list leaves a frame.
+
 # Sync and server
 
 - The app is offline first. Every screen reads and writes the device's SQLite file through `LocalStore` (`Sources/App/Sync`). The engine's triggers queue each write, and `SyncClient` sends it to `POST /api/sync` and pulls what changed. Nothing waits on the network.

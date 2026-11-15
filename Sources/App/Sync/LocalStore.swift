@@ -34,7 +34,7 @@ final class LocalStore {
     }
 
     /// Runs `body` in one transaction and returns once it is committed, so the screen never shows a state the
-    /// database does not hold. A gesture writes a handful of rows, which takes well under a frame. The engine's
+    /// database does not hold. `GestureTimingTests` keeps a gesture's write and redraw inside a frame. The engine's
     /// triggers queue the change for the next sync.
     @discardableResult
     func write<T>(_ body: (Database) throws -> T) -> T? {
