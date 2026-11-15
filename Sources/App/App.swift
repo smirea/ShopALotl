@@ -20,6 +20,7 @@ struct ShopALotlApp: App {
         #endif
         #if canImport(UIKit)
         Feedback.enable()
+        Feedback.pinned = ["ProcrastiMate"]
         Feedback.webhooks = [
             FeedbackWebhook(
                 name: "GitHub Issue",
