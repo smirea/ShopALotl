@@ -12,7 +12,8 @@
 		"env:ios": "bun scripts/secrets.ts ios",
 		"secrets:push": "bun scripts/secrets.ts push",
 		"secrets:github": "bun scripts/secrets.ts github",
-		"secrets:check": "bun scripts/secrets.ts check"
+		"secrets:check": "bun scripts/secrets.ts check",
+		"testflight": "bun scripts/secrets.ts testflight"
 	},
 	"packageManager": "bun@1.4.4",
 	"dependencies": {

@@ -22,6 +22,8 @@ bun install
 
 A device build needs this Mac's env-manager access for production's address and token. `./scripts/run --targets` lists devices and simulators.
 
+A push to `master` that touches the app uploads a build to TestFlight. `bun run testflight` uploads one from this Mac.
+
 ## Test it
 
 ```sh
@@ -36,6 +38,6 @@ bun run typecheck
 | --- | --- |
 | `Sources/App` | The SwiftUI app: `Logic` (pure rules), `Store` (writes and the list model), `Screens`, `Sync` |
 | `server` | The Worker, the local server, and `schema.ts`, the tables for both sides |
-| `scripts` | `run` (launcher), `icons` (renders the icon from `docs/assets/icon.svg`), `secrets.ts` (env-manager to Cloudflare and GitHub) |
+| `scripts` | `run` (launcher), `icons` (renders the icon from `docs/assets/icon.svg`), `archive` (the TestFlight build), `secrets.ts` (env-manager to Cloudflare and GitHub) |
 
-`AGENTS.md` covers the app's rules, sync, the environment, simulators, Feedback, and ProcrastiMate. Shake the phone to send feedback as an image, a GitHub issue, or a task in ProcrastiMate's `ShopALotl` project.
+`AGENTS.md` covers the app's rules, sync, the environment, simulators, TestFlight, Feedback, and ProcrastiMate. Shake the phone to send feedback as an image, a GitHub issue, or a task in ProcrastiMate's `ShopALotl` project.

@@ -53,6 +53,14 @@
 - `scripts/secrets.ts` is the one bridge from env-manager to the Worker, GitHub, and the app's production build settings. It never prints a value.
 - Secrets are optional in the schema, so offline generation works. `server/config.ts` lists what production requires in `REQUIRED_IN_PRODUCTION` and refuses to start without it.
 
+# TestFlight
+
+- `.github/workflows/testflight.yml` uploads a build on every push to `master` that touches the app (`Sources`, `Config`, `App.xcodeproj`, `scripts/archive`, `scripts/secrets.ts`). It waits ten minutes so a burst of pushes uploads once, and a manual dispatch (`gh workflow run testflight.yml`) builds right away. The internal group `me` has every build, so the build shows in the TestFlight app once App Store Connect has processed it.
+- `scripts/archive` archives Release unsigned, signs the app ad hoc with `Config/App.entitlements`, and lets the export sign it for distribution with the App Store Connect key. `bun run testflight` runs it on this Mac with the key from env-manager `prod`, and `bun run testflight --export-only` stops at `DerivedData/archive/export/App.ipa`.
+- The build number is the upload's UTC time as `year.MMdd.HHmmss`. Raise `MARKETING_VERSION` in `App.xcodeproj` only for a new version.
+- The key (`ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY_B64`) and the app's production `API_URL` and `OWNER_TOKEN` reach the workflow as repository secrets through `bun run secrets:github`. Run it after changing any of them in env-manager `prod`.
+- App Store Connect refuses an upload that calls a required-reason API missing from `Sources/App/PrivacyInfo.xcprivacy`. The app's one is `UserDefaults`. Add the entry in the same change as the first call to another (file timestamps, disk space, boot time).
+
 # Feedback
 
 - `Feedback.enable()` in `Sources/App/App.swift` turns on shake-to-feedback from `https://github.com/smirea/feedback-engine`. In a simulator, shake with `xcrun simctl notify_post <udid> com.apple.UIKit.SimulatorShake`, then press `Add Feedback` within 5 seconds.

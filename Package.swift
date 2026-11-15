@@ -18,8 +18,8 @@ let package = Package(
                 .product(name: "SyncEngine", package: "sync-engine"),
                 .product(name: "GRDB", package: "GRDB.swift"),
             ],
-            // SwiftPM cannot compile an asset catalog; Xcode builds it into the app.
-            exclude: ["Assets.xcassets"]
+            // SwiftPM cannot compile an asset catalog; Xcode builds it and the privacy manifest into the app.
+            exclude: ["Assets.xcassets", "PrivacyInfo.xcprivacy"]
         ),
         .testTarget(name: "AppTests", dependencies: ["App", .product(name: "GRDB", package: "GRDB.swift")]),
     ]
