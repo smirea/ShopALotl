@@ -24,7 +24,7 @@
 	"devDependencies": {
 		"@cloudflare/workers-types": "^5.20261114.1",
 		"@types/bun": "^1.4.4",
-		"env-manager": "github:smirea/env-manager",
+		"@stefan.inc/env-manager": "^1.0.0",
 		"typescript": "^7.0.2",
 		"wrangler": "^4.162.0"
 	},
