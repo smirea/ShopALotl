@@ -19,7 +19,7 @@ import Testing
         ("Müsli", "musli"),
         ("apples", "apples"),
     ])
-    func normalizes(name: String, key: String) {
+    func aKeyIsTheNameInLowercaseWithoutAccentsOrPunctuationAndSingleSpaced(name: String, key: String) {
         #expect(NameKey(name)?.text == key)
     }
 

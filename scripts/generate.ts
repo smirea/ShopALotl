@@ -1,17 +1,28 @@
 /**
  * Writes the app's copy of the schema from `server/schema.ts`: `bun run generate`. The output is committed, because
- * Xcode and CI build the app without running Bun first. `server/schema.test.ts` fails when it is stale.
+ * Xcode and CI build the app without running Bun first. `bun run lint` (`--check`) fails when it is stale.
  */
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { generate } from 'sync-engine/schema';
 import { schema } from '../server/schema';
 
-export const SWIFT_SCHEMA = 'Sources/App/Sync/Generated/SyncSchema.swift';
+const SWIFT_SCHEMA = 'Sources/App/Sync/Generated/SyncSchema.swift';
+const committed = join(import.meta.dir, '..', SWIFT_SCHEMA);
 
-if (import.meta.main) {
-	const swift = join(import.meta.dir, '..', SWIFT_SCHEMA);
-	mkdirSync(dirname(swift), { recursive: true });
-	generate({ schema, swift });
+if (Bun.argv.includes('--check')) {
+	const directory = mkdtempSync(join(tmpdir(), 'shopalotl-schema-'));
+	const fresh = join(directory, 'SyncSchema.swift');
+	generate({ schema, swift: fresh });
+	const stale = readFileSync(fresh, 'utf8') !== readFileSync(committed, 'utf8');
+	rmSync(directory, { recursive: true });
+	if (stale) {
+		console.error(`${SWIFT_SCHEMA} is stale. Run bun run generate and commit the result.`);
+		process.exit(1);
+	}
+} else {
+	mkdirSync(dirname(committed), { recursive: true });
+	generate({ schema, swift: committed });
 	console.log(`Wrote ${SWIFT_SCHEMA}`);
 }

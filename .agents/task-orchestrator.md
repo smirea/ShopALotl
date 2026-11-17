@@ -28,13 +28,13 @@ Repo config for the global `task-orchestrator` skill (`~/code/ai-files/skills/ta
 
 The Mac runs many jobs at once, and each booted simulator slows all of them. Climb this ladder and stop at the first rung that proves the change, but a change to what the owner sees or taps always reaches rung 3, and you tap it.
 
-1. Rules and writes: `swift test` (seconds, on macOS, no simulator). Server: `bun run test` and `bun run typecheck`.
+1. Rules and writes: `swift test` (seconds, on macOS, no simulator). Server: `bun run test`, `bun run typecheck` and `bun run lint`.
 2. Does the app compile for iOS: `xcodebuild build -project App.xcodeproj -scheme App -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO -derivedDataPath DerivedData/simulator -clonedSourcePackagesDirPath DerivedData/SourcePackages` (no boot). Skip it when rung 3 runs next. Use it after every rebase, and as the check for a Swift conflict when `pr-ship` exits 2.
 3. UI behavior: `./scripts/run -t "$(agent-simulator udid)" --headless --no-watch`, then T3's device tools as `AGENTS.md` describes. If it exits 3, the Mac was busy: rerun it. Finish the logic and server side first and batch every check into one session, so the simulator boots once, late.
 
 - Shut it down as soon as you have what you need: `agent-device close`, `device_close` with `shutdown: true`, then `./scripts/run --stop`, which stops the server rung 3 started.
 - Count the taps. The product's goals are simplicity, efficiency, and performance, so a change that adds a step to adding, checking, editing, or removing an item needs a reason in the PR.
-- Device-only checks: a simulator can't prove speed on the phone. Prove the logic with tests (`GestureTimingTests` guards the check path) and name the device check in `verification`.
+- Device-only checks: a simulator can't prove speed on the phone. Prove the logic with tests and name the device check in `verification`.
 - Upgrade check for entitlements, `Info.plist`, signing, or the stored schema: install master's build on your simulator (from a throwaway `git worktree add`), then yours over it, and launch with the existing data.
 
 ## PR

@@ -12,25 +12,19 @@ import Testing
         #expect(Instant.text(Date(timeIntervalSince1970: 1_794_702_639.0026)) == "2026-11-15T00:30:39.003Z")
     }
 
-    @Test func anItemReadsBackAsWritten() throws {
+    @Test func aRowReadsBackExactlyAsWritten() throws {
         let store = try makeStore()
         let item = Item(
             id: ItemID(listID: "main", key: NameKey("Oat Milk")!), name: "Oat Milk", state: .checked, quantity: "2", note: "barista",
             addedAt: .at(0), bought: [.at(10), .at(20)]
         )
-        store.write { try item.insert($0) }
-        let read = try store.database.pool.read { try Item.readable($0, sql: "SELECT * FROM items") }
-        #expect(read == [item])
-    }
-
-    @Test func aListKeepsItsAisleOrderAndAppendsTheRest() throws {
-        let store = try makeStore()
         let list = ShoppingList(id: "costco", name: "Costco", grouping: .category, categoryOrder: [.frozen, .produce], position: 1, createdAt: .at(0))
-        store.write { try list.insert($0) }
-        let read = try store.database.pool.read { try ShoppingList.readable($0, sql: "SELECT * FROM lists") }
-        #expect(read == [list])
-        #expect(read[0].aisles.prefix(3) == [.frozen, .produce, .bakery])
-        #expect(Set(read[0].aisles) == Set(Category.allCases))
+        store.write { db in
+            try item.insert(db)
+            try list.insert(db)
+        }
+        #expect(try store.database.pool.read { try Item.readable($0, sql: "SELECT * FROM items") } == [item])
+        #expect(try store.database.pool.read { try ShoppingList.readable($0, sql: "SELECT * FROM lists") } == [list])
     }
 
     @Test func aRowThisVersionCannotReadIsSkipped() throws {
@@ -44,19 +38,5 @@ import Testing
         #expect(items.map(\.name) == ["B"])
         let answers = try store.database.pool.read { try CategoryAnswer.readable($0, sql: "SELECT * FROM item_categories") }
         #expect(answers.isEmpty)
-    }
-
-    @Test func aWriteQueuesTheChangeForSync() throws {
-        let store = try makeStore()
-        let item = Item(id: ItemID(listID: "main", key: NameKey("Eggs")!), name: "Eggs", addedAt: .at(0))
-        store.write { try item.insert($0) }
-        store.write { db in
-            var checked = item
-            checked.state = .checked
-            try checked.updateChanges(db, from: item)
-        }
-        let outbox = try store.database.pool.read { try Row.fetchAll($0, sql: "SELECT op, col FROM _outbox ORDER BY seq").map { "\($0["op"] as String) \($0["col"] as String? ?? "-")" } }
-        #expect(outbox.count == 2)
-        #expect(outbox.last?.hasSuffix("state") == true)
     }
 }

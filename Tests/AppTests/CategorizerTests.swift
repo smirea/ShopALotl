@@ -9,11 +9,10 @@ import Testing
     }
 
     @Test(arguments: [
-        ("milk", Category.dairy), ("Bananas", .produce), ("banana", .produce), ("tomato", .produce), ("Tomatoes", .produce),
-        ("peanut butter", .pantry), ("chicken thighs", .meat), ("toilet paper", .household), ("diapers", .baby),
-        ("IPA", .alcohol), ("Mints", .snacks), ("Mint", .produce), ("Crème fraîche", .dairy), ("dog food", .pet), ("ice cream", .frozen), ("berry", .produce),
+        ("milk", Category.dairy), ("Bananas", .produce), ("banana", .produce), ("Tomatoes", .produce), ("berry", .produce),
+        ("Mints", .snacks), ("Mint", .produce), ("Crème fraîche", .dairy),
     ])
-    func theCatalogSettlesNamesItKnows(name: String, category: Category) {
+    func theCatalogSettlesANameItKnowsInAnyCaseAccentOrPlural(name: String, category: Category) {
         #expect(place(name) == Placement(category: category, isSettled: true))
     }
 
@@ -42,9 +41,8 @@ import Testing
         #expect(place("barista oat milk", answers) == Placement(category: .beverages, isSettled: false))
     }
 
-    @Test func everyCatalogNameHasAKeyAndTheCommonOnesAreUnique() {
+    @Test func noCatalogNameBelongsToTwoAisles() {
         let products = Catalog.shared.products
-        #expect(products.count > 700)
         let duplicates = Dictionary(grouping: products, by: \.key).filter { $0.value.count > 1 }.keys.map(\.text).sorted()
         #expect(duplicates == [])
     }

@@ -97,13 +97,17 @@ import Testing
         #expect(try items() == ["Oat milk needed ×2 bought:1"])
     }
 
-    @Test func anEditWritesOnlyTheFieldsItNamesSoAnotherDevicesEditOfTheRestSurvives() throws {
+    @Test func aGestureQueuesOnlyTheColumnsItChangedSoAnotherDevicesChangeToTheRestSurvives() throws {
         _ = add("2 milk")
+        let queued = { try self.store.database.pool.read { try String.fetchAll($0, sql: "SELECT col FROM _outbox ORDER BY col") } }
         try store.database.pool.write { try $0.execute(sql: "DELETE FROM _outbox") }
         store.edit(id("milk"), note: "lactose free")
-        let columns = try store.database.pool.read { try String.fetchAll($0, sql: "SELECT col FROM _outbox ORDER BY col") }
-        #expect(columns == ["note"])
+        #expect(try queued() == ["note"])
         #expect(try items() == ["Milk needed ×2 bought:0"])
+
+        try store.database.pool.write { try $0.execute(sql: "DELETE FROM _outbox") }
+        store.toggleChecked(id("milk"), at: .at(1))
+        #expect(try queued() == ["bought", "state"])
     }
 
     @Test func undoOfAnAddThatNamedAnItemTwiceLeavesNothing() throws {
@@ -123,14 +127,6 @@ import Testing
         #expect(try items() == ["milk needed bought:1"])
         store.undo(renamed)
         #expect(try items() == before)
-    }
-
-    @Test func aCheckSyncsAsOnePatchOfTheTwoColumnsItChanged() throws {
-        _ = add("milk")
-        try store.database.pool.write { try $0.execute(sql: "DELETE FROM _outbox") }
-        store.toggleChecked(id("milk"), at: .at(1))
-        let columns = try store.database.pool.read { try String.fetchAll($0, sql: "SELECT col FROM _outbox WHERE op != 'put' ORDER BY col") }
-        #expect(columns == ["bought", "state"])
     }
 
     @Test func theOwnersCategoryAndTheModelsAreSeparateRows() throws {
