@@ -30,8 +30,10 @@ A push to `master` that touches the app uploads a build to TestFlight. `bun run 
 swift test        # the app's logic, on macOS
 bun run test      # the server
 bun run typecheck
-bun run lint      # the generated Swift schema is current
+bun run lint      # oxlint and oxfmt fixes, and the generated Swift schema
 ```
+
+The pre-commit hook, installed by `bun install`, runs them on what a commit changes, and CI runs them again on every push.
 
 ## Where things are
 
