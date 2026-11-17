@@ -98,7 +98,9 @@ function verify() {
 	const onWorker = workerSecretNames({});
 	const missing = WORKER_SECRETS.filter(name => !onWorker.has(name));
 	if (missing.length) {
-		console.error(`The Worker lacks ${missing.join(', ')}. Set them in env-manager prod, then run bun run secrets:push.`);
+		console.error(
+			`The Worker lacks ${missing.join(', ')}. Set them in env-manager prod, then run bun run secrets:push.`,
+		);
 		process.exit(1);
 	}
 	console.log(`The Worker has every required secret: ${WORKER_SECRETS.join(', ')}`);
@@ -129,7 +131,10 @@ function testflight() {
 	const path = join(directory, 'AuthKey.p8');
 	try {
 		writeFileSync(path, Buffer.from(ASC_PRIVATE_KEY_B64!, 'base64'), { mode: 0o600 });
-		run([new URL('./archive', import.meta.url).pathname, ...process.argv.slice(3)], { env: { ...key, ASC_KEY_PATH: path }, inherit: true });
+		run([new URL('./archive', import.meta.url).pathname, ...process.argv.slice(3)], {
+			env: { ...key, ASC_KEY_PATH: path },
+			inherit: true,
+		});
 	} finally {
 		rmSync(directory, { recursive: true });
 	}
