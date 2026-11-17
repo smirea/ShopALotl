@@ -77,11 +77,6 @@ jobs:
       - name: Install dependencies
         if: needs.changes.outputs.bun == 'true'
         run: bun install --frozen-lockfile
-      - name: Generate environment from tracked defaults
-        if: needs.changes.outputs.bun == 'true'
-        run: |
-          bun add -g @stefan.inc/env-manager@^1
-          bun run env:generate
       - name: Checks
         if: needs.changes.outputs.bun == 'true' && matrix.task == 'checks'
         run: bun run typecheck
@@ -106,6 +101,10 @@ jobs:
       SWIFT_DIRECTORY: .
       CI: 'true'
       LEFTHOOK: '0'
+      # CI never runs env-manager, so no LocalSecrets.xcconfig or Env.xcconfig exists here. xcodebuild resolves the
+      # settings from this environment, and Config/check-env.sh fails the build when one is missing. Neither is secret.
+      API_URL: http://127.0.0.1:6191
+      PRODUCTION_API_URL: https://shopalotl.stf.lol
     steps:
       - name: Verify change detection
         env:
@@ -123,12 +122,9 @@ jobs:
         with:
           bun-version-file: .bun-version
 
-      - name: Generate native environment from tracked defaults
+      - name: Install dependencies
         if: needs.changes.outputs.swift == 'true'
-        run: |
-          bun install --frozen-lockfile
-          bun add -g @stefan.inc/env-manager@^1
-          bun run env:generate
+        run: bun install --frozen-lockfile
 
       - name: Identify Xcode and Swift toolchain
         if: needs.changes.outputs.swift == 'true'

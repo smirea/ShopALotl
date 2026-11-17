@@ -1,5 +1,7 @@
-// API_URL of the local server, written by `env-manager gen --local` with the checkout's ports.
-#include "LocalSecrets.xcconfig"
+// API_URL of the local server, written by `env-manager gen --local` with the checkout's ports. Optional, because CI
+// builds without it: xcodebuild resolves $(API_URL) from its environment, and Config/check-env.sh fails the build
+// when no value arrives either way.
+#include? "LocalSecrets.xcconfig"
 // PRODUCTION_API_URL and PRODUCTION_OWNER_TOKEN from env-manager prod, written by `bun run env:ios`.
 #include? "Env.xcconfig"
 

@@ -43,7 +43,7 @@
         A00000000000000000000005 = {
             isa = PBXNativeTarget;
             buildConfigurationList = A00000000000000000000011;
-            buildPhases = (A00000000000000000000007, A00000000000000000000008, A00000000000000000000009);
+            buildPhases = (A000000000000000000000E1, A00000000000000000000007, A00000000000000000000008, A00000000000000000000009);
             buildRules = ();
             dependencies = ();
             fileSystemSynchronizedGroups = (A00000000000000000000004);
@@ -60,6 +60,7 @@
             path = App.app;
             sourceTree = BUILT_PRODUCTS_DIR;
         };
+        A000000000000000000000E1 = { isa = PBXShellScriptBuildPhase; alwaysOutOfDate = 1; buildActionMask = 2147483647; files = (); inputPaths = ("$(SRCROOT)/Config/check-env.sh"); name = "Check environment"; outputPaths = (); runOnlyForDeploymentPostprocessing = 0; shellPath = /bin/sh; shellScript = "\"$SRCROOT/Config/check-env.sh\"\n"; };
         A00000000000000000000007 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
         A00000000000000000000008 = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000023, A00000000000000000000024, FB0000000000000000000003); runOnlyForDeploymentPostprocessing = 0; };
         A00000000000000000000009 = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
