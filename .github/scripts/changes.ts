@@ -14,10 +14,7 @@ const comparison = event === 'pull_request' ? `${base}...${head}` : `${base}..${
 const paths = (full ? [] : (await $`git diff --name-only -z ${comparison}`.text()).split('\0')).filter(
 	name => name && !['.md', '.rst'].includes(extname(name).toLowerCase()) && !name.startsWith('docs/'),
 );
-const common = full || paths.some(name => name.startsWith('.github/'));
-// The Bun jobs are cheap and read the app's generated schema, so any change but docs runs them.
-const bun = common || paths.length > 0;
-// `server/schema.ts` changes the committed Swift schema, which the Bun tests check, so the server alone skips Swift.
-const swift = common || paths.some(name => !name.startsWith('server/') && name !== 'wrangler.jsonc');
+// `server/schema.ts` changes the committed Swift schema, which `lint:ci` checks, so the server alone skips Swift.
+const swift = full || paths.some(name => !name.startsWith('server/') && name !== 'wrangler.jsonc');
 
-appendFileSync(output, `bun=${bun}\nswift=${swift}\n`);
+appendFileSync(output, `swift=${swift}\n`);

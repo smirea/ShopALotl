@@ -38,15 +38,21 @@
 
 - The app is offline first. Every screen reads and writes the device's SQLite file through `LocalStore` (`Sources/App/Sync`). The engine's triggers queue each write, and `SyncClient` sends it to `POST /api/sync` and pulls what changed. Nothing waits on the network.
 - One owner, no accounts. One secret, `OWNER_TOKEN`, is the bearer on every request. All data lives in one space, the Durable Object named `owner`.
-- `server/schema.ts` defines the tables for both sides. After changing it, run `bun run generate` and commit `Sources/App/Sync/Generated/SyncSchema.swift`; `bun run lint` fails when it is stale. Schema changes are additive: a new column needs a default or must be nullable, and a column is never renamed or removed.
+- `server/schema.ts` defines the tables for both sides. After changing it, run `bun run generate` and commit `Sources/App/Sync/Generated/SyncSchema.swift`; `bun run schema:check` fails when it is stale. Schema changes are additive: a new column needs a default or must be nullable, and a column is never renamed or removed.
 - A write names only the columns it changed, so two devices that change different fields of a row both keep their change. The item editor passes only the fields the owner touched. A row's first write is the exception: it syncs whole, so two devices that each make the first change to the first list offline keep only the later one.
 - Timestamps are text with whole milliseconds. `Instant.text` rounds, so a row reads and writes back unchanged.
 - Rows are keyed by what they describe (`<listId>/<nameKey>` for an item), so two devices that add the same thing offline write one row. `NameKey`'s rules are frozen, and `Tests/AppTests/NameKeyTests.swift` pins them.
 - `server/api.ts` is the one fetch handler. `server/worker.ts` serves it on Cloudflare and `server/dev.ts` with Bun over `.data/<checkout>.sqlite`. `GET /status` is open, and everything under `/api` needs the owner token.
 - `./scripts/run` starts the local server for a simulator or Mac run when it is not running. `./scripts/run --stop` stops it. `bun run start:server` runs it in the foreground.
 - A simulator or Mac Debug build syncs with the local server. A device build and every Release build sync with production, `https://shopalotl.stf.lol` (`Config/Base.xcconfig`). They need `Config/Env.xcconfig`, which `bun run env:ios` writes from env-manager `prod` and `./scripts/run` writes for a device when it is missing.
-- `bun run test` runs the server tests, `swift test` the app's logic tests on macOS, `bun run typecheck` the TypeScript, and `bun run lint` the generated Swift schema.
 - A push to `master` deploys the Worker after CI passes. `bun scripts/secrets.ts deploy` deploys from this Mac.
+
+# Checks
+
+- `swift test` runs the app's logic tests on macOS, `bun run test` the server tests, and `bun run typecheck` the TypeScript. `bun run lint` fixes lint and formatting with oxlint and oxfmt and regenerates the Swift schema; `bun run lint:ci` only checks, the schema included.
+- The pre-commit hook, `lefthook.yml`, is installed by `bun install`. It runs in parallel: the fixers on the staged files, and, when a file of their kind is staged, the type check, the schema check, the server tests, and `swift test`. It takes about a second warm; the first `swift test` in a new worktree also compiles the package.
+- CI runs `lint:ci`, `typecheck`, `test` and `build` as their own jobs on every change, and `swift test` and the iOS app build on a macOS runner when native files changed. `.github/CI.md` has the details.
+- Read the `tests` skill before adding, changing or fixing a test.
 
 # Environment
 
