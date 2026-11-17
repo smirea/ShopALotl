@@ -12,23 +12,19 @@ import Testing
         #expect(Instant.text(Date(timeIntervalSince1970: 1_794_702_639.0026)) == "2026-11-15T00:30:39.003Z")
     }
 
-    @Test func anItemReadsBackAsWritten() throws {
+    @Test func aRowReadsBackExactlyAsWritten() throws {
         let store = try makeStore()
         let item = Item(
             id: ItemID(listID: "main", key: NameKey("Oat Milk")!), name: "Oat Milk", state: .checked, quantity: "2", note: "barista",
             addedAt: .at(0), bought: [.at(10), .at(20)]
         )
-        store.write { try item.insert($0) }
-        let read = try store.database.pool.read { try Item.readable($0, sql: "SELECT * FROM items") }
-        #expect(read == [item])
-    }
-
-    @Test func aListKeepsItsAisleOrderAndAppendsTheRest() throws {
-        let store = try makeStore()
         let list = ShoppingList(id: "costco", name: "Costco", grouping: .category, categoryOrder: [.frozen, .produce], position: 1, createdAt: .at(0))
-        store.write { try list.insert($0) }
-        let read = try store.database.pool.read { try ShoppingList.readable($0, sql: "SELECT * FROM lists") }
-        #expect(read == [list])
+        store.write { db in
+            try item.insert(db)
+            try list.insert(db)
+        }
+        #expect(try store.database.pool.read { try Item.readable($0, sql: "SELECT * FROM items") } == [item])
+        #expect(try store.database.pool.read { try ShoppingList.readable($0, sql: "SELECT * FROM lists") } == [list])
     }
 
     @Test func aRowThisVersionCannotReadIsSkipped() throws {
