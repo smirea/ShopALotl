@@ -30,6 +30,7 @@ A push to `master` that touches the app uploads a build to TestFlight. `bun run 
 swift test        # the app's logic, on macOS
 bun run test      # the server
 bun run typecheck
+bun run lint      # the generated Swift schema is current
 ```
 
 ## Where things are

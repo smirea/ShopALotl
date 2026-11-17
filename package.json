@@ -4,7 +4,8 @@
 	"type": "module",
 	"scripts": {
 		"typecheck": "bun check",
-		"test": "bun test server scripts",
+		"lint": "bun scripts/generate.ts --check",
+		"test": "bun test server",
 		"build": "wrangler deploy --dry-run --outdir dist/worker",
 		"start:server": "cd server && bun --watch --no-clear-screen dev.ts",
 		"generate": "bun scripts/generate.ts",

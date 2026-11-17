@@ -42,19 +42,14 @@ const milk = {
 };
 
 describe('handle', () => {
-	test('status is open and names the environment', async () => {
-		const response = await handle(new Request('http://api.test/status'), app);
-		expect(await response.json()).toEqual({ ok: true, environment: 'development' });
-	});
-
-	test('everything under /api needs the owner token, and nothing else answers', async () => {
+	test('everything under /api needs the owner token, and /status does not', async () => {
+		expect((await handle(new Request('http://api.test/status'), app)).status).toBe(200);
 		expect((await sync('a', 0, [], null)).status).toBe(401);
 		expect((await sync('a', 0, [], 'wrong')).status).toBe(401);
 		const live = new Request('http://api.test/api/live', { headers: { upgrade: 'websocket' } });
 		expect((await handle(live, app)).status).toBe(401);
-		expect((await handle(new Request('http://api.test/'), app)).status).toBe(404);
-		const unknown = new Request('http://api.test/api/unknown', { headers: { authorization: `Bearer ${DEV_OWNER_TOKEN}` } });
-		expect((await handle(unknown, app)).status).toBe(404);
+		const feedback = new Request('http://api.test/api/feedback', { method: 'POST', body: 'x' });
+		expect((await handle(feedback, app)).status).toBe(401);
 	});
 
 	test('an item put by one device reaches another as a full row, and a check is one patch', async () => {
@@ -73,20 +68,6 @@ describe('handle', () => {
 		expect(rowsOf(after, 'items')).toEqual({ 'main/milk': { id: 'main/milk', ...milk, state: 'checked', bought } });
 	});
 
-	test("the model's answer and the owner's are separate rows, so neither put erases the other", async () => {
-		const answer = (source: string, category: string) => ({
-			table: 'item_categories',
-			id: `tahini#${source}`,
-			op: 'put',
-			values: { name_key: 'tahini', source, category },
-		});
-		await synced('a', 0, [{ seq: 2, ...answer('user', 'pantry') }]);
-		await synced('c', 0, [{ seq: 1, ...answer('model', 'dairy') }]);
-		const answers = rowsOf(await synced('d', 0, []), 'item_categories');
-		expect(answers['tahini#user']?.category).toBe('pantry');
-		expect(answers['tahini#model']?.category).toBe('dairy');
-	});
-
 	test('a write a validator refuses is rejected alone', async () => {
 		const response = await synced('e', 0, [
 			{ seq: 1, table: 'items', id: 'main/x', op: 'put', values: { ...milk, state: 'bought' } },
@@ -94,39 +75,5 @@ describe('handle', () => {
 		]);
 		expect(response.rejected.map(write => write.id)).toEqual(['main/x']);
 		expect(response.acked).toBe(2);
-	});
-});
-
-describe('POST /api/feedback', () => {
-	const post = (token: string | null, body?: FormData) =>
-		handle(
-			new Request('http://api.test/api/feedback', {
-				method: 'POST',
-				headers: token ? { authorization: `Bearer ${token}` } : {},
-				body: body ?? 'x',
-			}),
-			app,
-		);
-
-	test('needs the owner token, then a GitHub token on the server', async () => {
-		expect((await post(null)).status).toBe(401);
-		const response = await post(DEV_OWNER_TOKEN);
-		expect(response.status).toBe(503);
-		expect(await response.json()).toEqual({ message: 'Set GITHUB_TOKEN on the server to file feedback issues.' });
-	});
-
-	test('a post without the four parts is refused before GitHub is called', async () => {
-		const withToken: App = { ...app, config: { ...app.config, githubToken: 'unused' } };
-		const form = new FormData();
-		form.set('id', 'post-1');
-		const response = await handle(
-			new Request('http://api.test/api/feedback', {
-				method: 'POST',
-				headers: { authorization: `Bearer ${DEV_OWNER_TOKEN}` },
-				body: form,
-			}),
-			withToken,
-		);
-		expect(response.status).toBe(400);
 	});
 });

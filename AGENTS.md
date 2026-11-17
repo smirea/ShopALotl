@@ -32,20 +32,20 @@
 - Rows hold still. A row keeps the section it was drawn in until 1.5 seconds after the last touch (`ListModel.settleDelay`), so a late category answer waits and a row checked while checked rows are hidden stays in sight. A gesture moves only the rows it wrote, through `reload(releasing:)`. Do not move a row under the finger.
 - An item has no category. `Categorizer.place` reads the owner's answer, then the catalog's entry for the whole name, then the on-device model's stored answer, then a guess from part of the name. `CategoryInference` asks the model (FoundationModels) only about guesses and stores its answer in `item_categories` as source `model`. The owner's answer has its own row, so nothing overwrites it.
 - An item row is the list entry, the autocomplete entry, and the purchase history at once. Taking an item off the list sets `state = 'off'`. Suggestions and the due rail come from each row's `bought` instants.
-- Performance: the hot paths (a keystroke in the add field, an add, a check) do no async work before the screen updates. `GestureTimingTests` fails when the median check on a 300-item list leaves a frame, from the write through `ListModel`'s re-read and layout. SwiftUI's drawing is not in it.
+- Performance: the hot paths (a keystroke in the add field, an add, a check) do no async work before the screen updates.
 
 # Sync and server
 
 - The app is offline first. Every screen reads and writes the device's SQLite file through `LocalStore` (`Sources/App/Sync`). The engine's triggers queue each write, and `SyncClient` sends it to `POST /api/sync` and pulls what changed. Nothing waits on the network.
 - One owner, no accounts. One secret, `OWNER_TOKEN`, is the bearer on every request. All data lives in one space, the Durable Object named `owner`.
-- `server/schema.ts` defines the tables for both sides. After changing it, run `bun run generate` and commit `Sources/App/Sync/Generated/SyncSchema.swift`; `server/schema.test.ts` fails when it is stale. Schema changes are additive: a new column needs a default or must be nullable, and a column is never renamed or removed.
+- `server/schema.ts` defines the tables for both sides. After changing it, run `bun run generate` and commit `Sources/App/Sync/Generated/SyncSchema.swift`; `bun run lint` fails when it is stale. Schema changes are additive: a new column needs a default or must be nullable, and a column is never renamed or removed.
 - A write names only the columns it changed, so two devices that change different fields of a row both keep their change. The item editor passes only the fields the owner touched. A row's first write is the exception: it syncs whole, so two devices that each make the first change to the first list offline keep only the later one.
 - Timestamps are text with whole milliseconds. `Instant.text` rounds, so a row reads and writes back unchanged.
 - Rows are keyed by what they describe (`<listId>/<nameKey>` for an item), so two devices that add the same thing offline write one row. `NameKey`'s rules are frozen, and `Tests/AppTests/NameKeyTests.swift` pins them.
 - `server/api.ts` is the one fetch handler. `server/worker.ts` serves it on Cloudflare and `server/dev.ts` with Bun over `.data/<checkout>.sqlite`. `GET /status` is open, and everything under `/api` needs the owner token.
 - `./scripts/run` starts the local server for a simulator or Mac run when it is not running. `./scripts/run --stop` stops it. `bun run start:server` runs it in the foreground.
 - A simulator or Mac Debug build syncs with the local server. A device build and every Release build sync with production, `https://shopalotl.stf.lol` (`Config/Base.xcconfig`). They need `Config/Env.xcconfig`, which `bun run env:ios` writes from env-manager `prod` and `./scripts/run` writes for a device when it is missing.
-- `bun run test` runs the server tests, `swift test` the app's logic tests on macOS, and `bun run typecheck` the TypeScript.
+- `bun run test` runs the server tests, `swift test` the app's logic tests on macOS, `bun run typecheck` the TypeScript, and `bun run lint` the generated Swift schema.
 - A push to `master` deploys the Worker after CI passes. `bun scripts/secrets.ts deploy` deploys from this Mac.
 
 # Environment
