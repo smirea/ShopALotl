@@ -1,6 +1,6 @@
 /**
  * Writes the app's copy of the schema from `server/schema.ts`: `bun run generate`. The output is committed, because
- * Xcode and CI build the app without running Bun first. `bun run lint` (`--check`) fails when it is stale.
+ * Xcode and CI build the app without running Bun first. `bun run schema:check` fails when it is stale.
  */
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
