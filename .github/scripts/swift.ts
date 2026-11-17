@@ -4,27 +4,13 @@ import { env } from 'node:process';
 const directory = env.SWIFT_DIRECTORY;
 if (!directory) throw new Error('Missing SWIFT_DIRECTORY');
 
-const xcodeArgs = [
-	'-project',
-	'App.xcodeproj',
-	'-scheme',
-	'App',
-	'-derivedDataPath',
-	'DerivedData/ci',
-	'-clonedSourcePackagesDirPath',
-	'.build/SourcePackages',
-	'CODE_SIGNING_ALLOWED=NO',
-];
-
 switch (Bun.argv[2]) {
-	case 'checks':
-		await $`swift build`.cwd(directory);
-		break;
-	case 'tests':
+	case 'package':
+		// `swift test` compiles every target, the app's included, so it is the macOS compile check too.
 		await $`swift test`.cwd(directory);
 		break;
-	case 'build':
-		await $`xcodebuild build ${xcodeArgs} -configuration Release -destination ${'generic/platform=iOS Simulator'}`.cwd(
+	case 'app':
+		await $`xcodebuild build -project App.xcodeproj -scheme App -derivedDataPath DerivedData/ci -clonedSourcePackagesDirPath .build/SourcePackages CODE_SIGNING_ALLOWED=NO -configuration Release -destination ${'generic/platform=iOS Simulator'}`.cwd(
 			directory,
 		);
 		break;
