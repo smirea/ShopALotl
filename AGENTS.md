@@ -76,7 +76,7 @@
 - The widget compiles the app's model, logic and sync files listed in the `Widget` exception set of `App.xcodeproj`. Code it shares stays free of SwiftUI screens and `LocalStore`; `ItemWrites` and `ListReads` work on a bare `Database`.
 - A widget check writes, posts `AppGroup.changedNotification`, and sends its own sync without waiting for it. The app re-reads every observed query when it becomes active or hears the notification (`LocalStore.refreshFromOtherProcesses`), and reloads the widget after any change to its rows.
 - Each row's intent carries the state a tap leads to, and the row is a `Toggle`, so WidgetKit flips it the moment it is tapped. Do not use `SetValueIntent`: the system sent its value as nil.
-- An App Store Connect API key cannot create or assign App Groups (`/appGroups` answers 401), so a new group or a new target in one is a one-time step in the developer portal.
+- An App Store Connect API key cannot create or assign App Groups (`/appGroups` answers 401), so a new group or a new target in one is a one-time step in the developer portal. Xcode's Try Again does not fix the App target: its entitlements are set for iOS SDKs only, which the Signing & Capabilities tab does not read, so tick the group on the App ID in the portal.
 
 # Feedback
 
