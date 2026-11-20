@@ -69,12 +69,20 @@ xcodebuild archive -project App.xcodeproj -scheme App -configuration Release \
     CODE_SIGN_IDENTITY=""
 
 # Export keeps only the entitlements a bundle is already signed with, so an unsigned archive would ship without the
-# keychain group ProcrastiMate shares its session through. Ad-hoc signing with the entitlements carries them through.
-# Xcode fills in $(AppIdentifierPrefix) only when it signs, so this does.
+# keychain group ProcrastiMate shares its session through, or the app group the widget reads the database from.
+# Ad-hoc signing with the entitlements carries them through. Xcode fills in $(AppIdentifierPrefix) only when it signs,
+# so this does. The widget is signed before the app, whose signature seals it.
 app=$archive/Products/Applications/App.app
-sed "s/\$(AppIdentifierPrefix)/$team./g" Config/App.entitlements > "$entitlements"
-if grep -q '\$(' "$entitlements"; then echo "Unexpanded build setting in Config/App.entitlements" >&2; exit 1; fi
+widget=$app/PlugIns/Widget.appex
+test -d "$widget" || { echo "No widget extension in $app" >&2; exit 1; }
+expand() {
+    sed "s/\$(AppIdentifierPrefix)/$team./g" "$1" > "$2"
+    if grep -q '\$(' "$2"; then echo "Unexpanded build setting in $1" >&2; exit 1; fi
+}
+expand Config/App.entitlements "$entitlements"
+expand Config/Widget.entitlements "$out/Widget.entitlements"
 codesign --force --deep --sign - "$app"
+codesign --force --sign - --entitlements "$out/Widget.entitlements" "$widget"
 codesign --force --sign - --entitlements "$entitlements" "$app"
 
 xcodebuild -exportArchive -archivePath "$archive" -exportOptionsPlist "$options" -exportPath "$out/export" \

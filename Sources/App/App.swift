@@ -7,7 +7,10 @@ struct ShopALotlApp: App {
     @State private var app: AppModel
     private let inference: CategoryInference?
 
+    @Environment(\.scenePhase) private var scenePhase
+
     init() {
+        AppGroup.adoptStandardDefaults()
         let store = LocalStore()
         let app = AppModel(store: store)
         _store = State(initialValue: store)
@@ -48,6 +51,9 @@ struct ShopALotlApp: App {
                 .environment(app)
                 // The catalog's global accent alone left controls blue on iOS 27, so the tint is set here too.
                 .tint(Color("AccentColor"))
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .active { store.refreshFromOtherProcesses() }
+                }
         }
     }
 }

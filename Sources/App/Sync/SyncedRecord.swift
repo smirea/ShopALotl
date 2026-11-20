@@ -1,5 +1,8 @@
 import Foundation
 import GRDB
+import os
+
+private let log = Logger(subsystem: "com.stefan.shopalotl", category: "store")
 
 /// A row of one synced table, read and written through GRDB. The id column is the record's `key`.
 protocol SyncedRecord: FetchableRecord, PersistableRecord, Identifiable, Equatable, Sendable where ID: Sendable {
@@ -52,5 +55,19 @@ enum RowJSON {
     static func text(_ strings: [String]) -> String {
         let data = try! JSONSerialization.data(withJSONObject: strings, options: [.withoutEscapingSlashes])
         return String(decoding: data, as: UTF8.self)
+    }
+}
+
+extension SyncedRecord {
+    /// The rows of a query, without those this app version cannot read: one bad row never hides the rest.
+    static func readable(_ db: Database, sql: String, arguments: StatementArguments = []) throws -> [Self] {
+        try Row.fetchAll(db, sql: sql, arguments: arguments).compactMap { row in
+            do {
+                return try Self(row: row)
+            } catch {
+                log.error("Skipped a row of \(table): \(String(describing: error))")
+                return nil
+            }
+        }
     }
 }

@@ -14,3 +14,8 @@ API_URL[sdk=iphoneos*] = $(PRODUCTION_API_URL)
 OWNER_TOKEN[sdk=iphoneos*] = $(PRODUCTION_OWNER_TOKEN)
 API_URL[config=Release] = $(PRODUCTION_API_URL)
 OWNER_TOKEN[config=Release] = $(PRODUCTION_OWNER_TOKEN)
+
+// Shared by the app and its widget, which App Store Connect requires to match. Raise MARKETING_VERSION only for a new
+// version; scripts/archive sets the build number.
+MARKETING_VERSION = 1.0
+CURRENT_PROJECT_VERSION = 1

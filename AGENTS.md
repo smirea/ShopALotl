@@ -43,7 +43,7 @@
 - Timestamps are text with whole milliseconds. `Instant.text` rounds, so a row reads and writes back unchanged.
 - Rows are keyed by what they describe (`<listId>/<nameKey>` for an item), so two devices that add the same thing offline write one row. `NameKey`'s rules are frozen, and `Tests/AppTests/NameKeyTests.swift` pins them.
 - `server/api.ts` is the one fetch handler. `server/worker.ts` serves it on Cloudflare and `server/dev.ts` with Bun over `.data/<checkout>.sqlite`. `GET /status` is open, and everything under `/api` needs the owner token.
-- `./scripts/run` starts the local server for a simulator or Mac run when it is not running. `./scripts/run --stop` stops it. `bun run start:server` runs it in the foreground.
+- `./scripts/run` starts the local server for a simulator or Mac run when it is not running. `./scripts/run --stop` stops it. `bun run start:server` runs it in the foreground. Another project's server on `API_PORT` fails the run, since `GET /status` names the service.
 - A simulator or Mac Debug build syncs with the local server. A device build and every Release build sync with production, `https://shopalotl.stf.lol` (`Config/Base.xcconfig`). They need `Config/Env.xcconfig`, which `bun run env:ios` writes from env-manager `prod` and `./scripts/run` writes for a device when it is missing.
 - A push to `master` deploys the Worker after CI passes. `bun scripts/secrets.ts deploy` deploys from this Mac.
 
@@ -65,9 +65,18 @@
 
 - `.github/workflows/testflight.yml` uploads a build on every push to `master` that touches the app (`Sources`, `Config`, `App.xcodeproj`, `scripts/archive`, `scripts/secrets.ts`). It waits ten minutes so a burst of pushes uploads once, and a manual dispatch (`gh workflow run testflight.yml`) builds right away. The internal group `me` has every build, so the build shows in the TestFlight app once App Store Connect has processed it.
 - `scripts/archive` archives Release unsigned, signs the app ad hoc with `Config/App.entitlements`, and lets the export sign it for distribution with the App Store Connect key. `bun run testflight` runs it on this Mac with the key from env-manager `prod`, and `bun run testflight --export-only` stops at `DerivedData/archive/export/App.ipa`.
-- The build number is the upload's UTC time as `year.MMdd.HHmmss`. Raise `MARKETING_VERSION` in `App.xcodeproj` only for a new version.
+- The build number is the upload's UTC time as `year.MMdd.HHmmss`. Raise `MARKETING_VERSION` in `Config/Base.xcconfig` only for a new version; the app and the widget share it, as App Store Connect requires.
 - The key (`ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY_B64`) and the app's production `API_URL` and `OWNER_TOKEN` reach the workflow as repository secrets through `bun run secrets:github`. Run it after changing any of them in env-manager `prod`.
 - App Store Connect refuses an upload that calls a required-reason API missing from `Sources/App/PrivacyInfo.xcprivacy`. The app's one is `UserDefaults`. Add the entry in the same change as the first call to another (file timestamps, disk space, boot time).
+
+# Widget
+
+- `Sources/Widget` is a WidgetKit extension (iOS only) in small, medium and large sizes: the open list's items one per row, in the app's order without aisle headers, following the eye's setting. A tap on a row checks it through `CheckItemIntent`; small and medium carry an open-app button over the last row.
+- The app and the widget share the App Group `group.com.stefan.shopalotl`: the SQLite file (`LocalDatabase.url`) and the open list and eye settings (`AppGroup.defaults`). An install from before the widget moves its file there on first launch (`LocalDatabase.adopt`). The widget never creates the file.
+- The widget compiles the app's model, logic and sync files listed in the `Widget` exception set of `App.xcodeproj`. Code it shares stays free of SwiftUI screens and `LocalStore`; `ItemWrites` and `ListReads` work on a bare `Database`.
+- A widget check writes, posts `AppGroup.changedNotification`, and sends its own sync without waiting for it. The app re-reads every observed query when it becomes active or hears the notification (`LocalStore.refreshFromOtherProcesses`), and reloads the widget after any change to its rows.
+- Each row's intent carries the state a tap leads to, and the row is a `Toggle`, so WidgetKit flips it the moment it is tapped. Do not use `SetValueIntent`: the system sent its value as nil.
+- An App Store Connect API key cannot create or assign App Groups (`/appGroups` answers 401), so a new group or a new target in one is a one-time step in the developer portal.
 
 # Feedback
 

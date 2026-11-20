@@ -13,7 +13,6 @@ import SwiftUI
 @MainActor @Observable
 final class ListModel {
     static let settleDelay: Duration = .milliseconds(1500)
-    private static let hidesCheckedKey = "hidesChecked"
 
     let listID: String
     private(set) var snapshot: ListSnapshot
@@ -21,7 +20,7 @@ final class ListModel {
     /// The last gesture that can be taken back, shown as a toast until it expires.
     private(set) var undoable: Undoable?
     /// Checked rows stay on the list but out of sight. Shared by every list on this device.
-    private(set) var hidesChecked = UserDefaults.standard.bool(forKey: ListModel.hidesCheckedKey)
+    private(set) var hidesChecked = AppGroup.defaults.bool(forKey: AppGroup.Key.hidesChecked)
     /// The last add, set once its rows have animated in: a List ignores a scroll to a row while it is still
     /// animating the row in.
     private(set) var landed: Landing?
@@ -111,7 +110,10 @@ final class ListModel {
     /// Unlike a check, this moves rows at once: the owner asked for exactly that.
     func toggleHidingChecked() {
         hidesChecked.toggle()
-        UserDefaults.standard.set(hidesChecked, forKey: Self.hidesCheckedKey)
+        AppGroup.defaults.set(hidesChecked, forKey: AppGroup.Key.hidesChecked)
+        #if os(iOS)
+        store.reloadWidget()
+        #endif
         held = held.filter { id, _ in item(id)?.state != .checked }
         withAnimation(.snappy(duration: 0.25)) { draw() }
     }
