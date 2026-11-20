@@ -144,13 +144,20 @@ async function agentSimulator(...args: string[]) {
     if (code !== 0) process.exit(code);
 }
 
+/** Whether this project's server answers on `port`. Another project's server on the same port fails the run, because
+ * the app would sync with it and every sync would fail. */
 async function listening(port: string) {
+    let response: Response;
     try {
-        await fetch(`http://127.0.0.1:${port}/status`, { signal: AbortSignal.timeout(1000) });
-        return true;
+        response = await fetch(`http://127.0.0.1:${port}/status`, { signal: AbortSignal.timeout(1000) });
     } catch {
         return false;
     }
+    const status = await response.json().catch(() => undefined);
+    if (status?.service !== "shopalotl") {
+        throw new Error(`Another server already listens on port ${port}. Stop it, or give this checkout another API_PORT with env-manager.`);
+    }
+    return true;
 }
 
 /** The build settings a target reads. A device syncs with production, so it needs production's address and token;

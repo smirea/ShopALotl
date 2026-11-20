@@ -46,7 +46,8 @@ const ENGINE_ROUTES = new Set(['POST /api/sync', 'GET /api/live']);
 export async function handle<Upgraded = never>(request: Request, app: App<Upgraded>): Promise<Response | Upgraded> {
 	const url = new URL(request.url);
 	const route = `${request.method} ${url.pathname}`;
-	if (route === 'GET /status') return Response.json({ ok: true, environment: app.config.environment });
+	if (route === 'GET /status')
+		return Response.json({ ok: true, service: 'shopalotl', environment: app.config.environment });
 	if (url.pathname !== '/api' && !url.pathname.startsWith('/api/')) return error(404, 'Not found');
 	// `withBearer` only matters for a browser's `/live`, whose token rides in the subprotocol.
 	if (!(await isOwner(withBearer(request), app.config.ownerToken))) {
