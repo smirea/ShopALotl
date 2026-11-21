@@ -40,4 +40,21 @@ import Testing
         #expect(model.snapshot.items.map(\.name) == ["Mlik"])
         #expect(model.undoable == nil)
     }
+
+    @Test func togglingCategoriesSwitchesBetweenAislesAndPlainOrderImmediately() throws {
+        let model = try #require(ListModel(listID: list, store: store))
+        model.add("milk")
+        model.add("bananas")
+        model.add("bread")
+        #expect(drawn(model.sections) == ["produce: Bananas", "bakery: Bread", "dairy: Milk"])
+
+        model.toggleGrouping()
+        #expect(model.list.grouping == .none)
+        #expect(drawn(model.sections) == ["plain: Milk, Bananas, Bread"])
+        #expect(try #require(ListModel(listID: list, store: store)).list.grouping == .none)
+
+        model.toggleGrouping()
+        #expect(model.list.grouping == .category)
+        #expect(drawn(model.sections) == ["produce: Bananas", "bakery: Bread", "dairy: Milk"])
+    }
 }

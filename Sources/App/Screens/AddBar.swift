@@ -42,10 +42,10 @@ struct AddBar: View {
                     .onSubmit(submit)
                     .accessibilityHint("Separate several items with commas")
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 12)
             .padding(.vertical, 11)
             .background(.fill.tertiary, in: .rect(cornerRadius: 14))
-            .padding(.horizontal)
+            .padding(.horizontal, 10)
         }
         .padding(.vertical, 8)
         .background(.bar)

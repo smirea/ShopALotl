@@ -42,17 +42,24 @@ struct ListScreen: View {
             }
             .toolbar {
                 if model.checkedCount > 0 {
-                    ToolbarItem(placement: .primaryAction) {
+                    ToolbarItem(placement: clearPlacement) {
+                        Button("Clear \(model.checkedCount)", action: model.clearChecked)
+                            .accessibilityLabel("Clear \(model.checkedCount) checked \(model.checkedCount == 1 ? "item" : "items")")
+                    }
+                }
+                ToolbarItemGroup(placement: .primaryAction) {
+                    if model.checkedCount > 0 {
                         Button(
                             model.hidesChecked ? "Show Checked" : "Hide Checked",
                             systemImage: model.hidesChecked ? "eye.slash" : "eye",
                             action: model.toggleHidingChecked
                         )
                     }
-                    ToolbarItem(placement: clearPlacement) {
-                        Button("Clear \(model.checkedCount)", action: model.clearChecked)
-                            .accessibilityLabel("Clear \(model.checkedCount) checked \(model.checkedCount == 1 ? "item" : "items")")
-                    }
+                    Button(
+                        model.list.grouping == .category ? "Hide Categories" : "Show Categories",
+                        systemImage: model.list.grouping == .category ? "tag" : "tag.slash",
+                        action: model.toggleGrouping
+                    )
                 }
             }
         }
@@ -63,7 +70,7 @@ struct ListScreen: View {
         .feedback(self)
     }
 
-    /// Two controls on one side push the title off center, so it would jump on the first check.
+    /// Keeping Clear on the leading side leaves the trailing view toggles compact and balances the title.
     private var clearPlacement: ToolbarItemPlacement {
         #if os(iOS)
         .topBarLeading
@@ -76,12 +83,18 @@ struct ListScreen: View {
         ScrollViewReader { scroller in
             List {
                 ForEach(model.sections) { section in
-                    Section {
-                        ForEach(section.rows) { row in
-                            ItemRowView(row: row, aisles: model.list.aisles, model: model) { editing = row.id }
+                    if case let .aisle(category) = section.id {
+                        Section {
+                            rows(in: section)
+                        } header: {
+                            aisleHeader(for: category)
                         }
-                    } header: {
-                        header(of: section.id)
+                        .listSectionSeparator(.hidden)
+                    } else {
+                        Section {
+                            rows(in: section)
+                        }
+                        .listSectionSeparator(.hidden)
                     }
                 }
             }
@@ -96,6 +109,14 @@ struct ListScreen: View {
         }
     }
 
+    private func rows(in section: ListSection) -> some View {
+        ForEach(section.rows) { row in
+            ItemRowView(row: row, aisles: model.list.aisles, model: model) { editing = row.id }
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 9, leading: 10, bottom: 9, trailing: 10))
+        }
+    }
+
     /// The list stays in sight while adding, and a tap on it closes the keyboard and the suggestions.
     private var closer: some View {
         Button { isAdding = false } label: {
@@ -105,16 +126,33 @@ struct ListScreen: View {
         .accessibilityLabel("Close")
     }
 
-    @ViewBuilder
-    private func header(of section: SectionID) -> some View {
-        switch section {
-        case let .aisle(category):
-            Label(category.title, systemImage: category.symbol)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(category.title)
-                .accessibilityAddTraits(.isHeader)
-        case .plain: EmptyView()
+    private func aisleHeader(for category: Category) -> some View {
+        HStack(spacing: 8) {
+            headerLine
+            HStack(spacing: 5) {
+                Image(systemName: category.symbol)
+                    .accessibilityHidden(true)
+                Text(category.title)
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .layoutPriority(1)
+            headerLine
         }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(category.title)
+        .accessibilityAddTraits(.isHeader)
+        .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 8, trailing: 0))
+    }
+
+    private var headerLine: some View {
+        Rectangle()
+            .fill(.separator)
+            .frame(height: 1)
+            .frame(maxWidth: .infinity)
+            .accessibilityHidden(true)
     }
 
     private var emptyState: some View {

@@ -118,6 +118,13 @@ final class ListModel {
         withAnimation(.snappy(duration: 0.25)) { draw() }
     }
 
+    /// Switches between aisle sections and a plain list at once, persisting on the list so sync and the widget follow.
+    func toggleGrouping() {
+        let next: Grouping = list.grouping == .category ? .none : .category
+        store.updateList(listID) { $0.grouping = next }
+        reload()
+    }
+
     func remove(_ id: ItemID) {
         guard let item = item(id) else { return }
         offerUndo(of: store.remove(id), "Removed \(item.name)")
@@ -176,6 +183,7 @@ final class ListModel {
         guard let fresh else { return onGone() }
         withAnimation(.snappy(duration: 0.25)) {
             guard fresh != snapshot else { return }
+            if fresh.list.grouping != snapshot.list.grouping { held = [:] }
             snapshot = fresh
             draw()
         } completion: {
@@ -188,7 +196,12 @@ final class ListModel {
         let onList = Set(snapshot.items.lazy.filter(\.isOnList).map(\.id))
         held = held.filter { onList.contains($0.key) }.merging(ideal) { drawn, _ in drawn }
         sections = Layout.sections(snapshot, held: held, hidingChecked: hidesChecked)
-        if held != ideal { scheduleSettle() }
+        if held != ideal {
+            scheduleSettle()
+        } else {
+            settling?.cancel()
+            settling = nil
+        }
     }
 
     private func scheduleSettle() {
