@@ -42,10 +42,11 @@ import Testing
     }
 
     @Test func togglingCategoriesSwitchesBetweenAislesAndPlainOrderImmediately() throws {
+        // Added a second apart, since adds within one millisecond tie and fall back to name order.
+        for (seconds, name) in ["milk", "bananas", "bread"].enumerated() {
+            store.add(EntryParser.entries(in: name), to: list, at: .at(TimeInterval(seconds)))
+        }
         let model = try #require(ListModel(listID: list, store: store))
-        model.add("milk")
-        model.add("bananas")
-        model.add("bread")
         #expect(drawn(model.sections) == ["produce: Bananas", "bakery: Bread", "dairy: Milk"])
 
         model.toggleGrouping()

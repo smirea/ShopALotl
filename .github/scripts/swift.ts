@@ -4,6 +4,8 @@ import { env } from 'node:process';
 const directory = env.SWIFT_DIRECTORY;
 if (!directory) throw new Error('Missing SWIFT_DIRECTORY');
 
+await $`bun scripts/own-packages.ts .build/SourcePackages`.cwd(directory);
+
 switch (Bun.argv[2]) {
 	case 'package':
 		// `swift test` compiles every target, the app's included, so it is the macOS compile check too.

@@ -80,6 +80,7 @@
 
 # Feedback
 
+- Feedback (`https://github.com/smirea/feedback-engine`) and sync-engine track `master`, never a commit: neither `Package.resolved` is tracked, and `scripts/run`, `scripts/archive`, and CI run `scripts/own-packages.ts`, which moves each pin to its branch's current head before building (offline, the pins stay). GRDB keeps its declared range. Building from the Xcode app does not refresh them; use the run script or File › Packages › Update to Latest Package Versions.
 - `Feedback.enable()` in `Sources/App/App.swift` turns on shake-to-feedback from `https://github.com/smirea/feedback-engine`. In a simulator, shake with `xcrun simctl notify_post <udid> com.apple.UIKit.SimulatorShake`, then press `Add Feedback` within 5 seconds.
 - When you build or change a SwiftUI screen, row, card, or chart, follow Feedback's accessibility skill. Read the latest with `gh api repos/smirea/feedback-engine/contents/skills/feedback-accessibility/SKILL.md -H 'Accept: application/vnd.github.raw'`.
 - The editor's **GitHub Issue** entry posts to `POST /api/feedback` (`server/feedback.ts`), which files an issue in `smirea/ShopALotl` as the `smirea-ai` account, labeled `feedback`. The server needs `GITHUB_TOKEN`, that account's `gh auth token`.

@@ -24,3 +24,7 @@ Config/Env.xcconfig
 
 # the task orchestrator's session files
 .orchestrator
+
+# The owner's own packages track master; scripts/own-packages.ts moves these pins before every build
+Package.resolved
+App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved

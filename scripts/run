@@ -6,6 +6,7 @@ import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { parseDotenv } from "./lib.ts";
+import { refreshOwnPackages } from "./own-packages.ts";
 
 const root = resolve(import.meta.dir, "..");
 const runCommand = "./scripts/run";
@@ -385,6 +386,7 @@ A device run syncs with production and needs Config/Env.xcconfig, which bun run 
         if (values.headless && target.state !== "booted") await agentSimulator("wait", target.id);
     }
     mkdirSync(join(root, "DerivedData"), { recursive: true });
+    await refreshOwnPackages(join(root, "DerivedData", "SourcePackages"));
     await prepareEnvironment(target);
     const watch = values.watch && !values["no-watch"];
     let previous = snapshot(project);

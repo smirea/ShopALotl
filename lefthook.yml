@@ -26,5 +26,5 @@ pre-commit:
             run: unset $(git rev-parse --local-env-vars); bun run test
           # The app's logic tests run on the Mac with no simulator. The first run in a new worktree also compiles the package.
           - name: swift
-            glob: ['*.swift', 'Package.resolved']
+            glob: '*.swift'
             run: unset $(git rev-parse --local-env-vars); swift test
