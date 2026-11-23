@@ -37,18 +37,6 @@ enum Suggestions {
         .prefix(limit).map(\.0)
     }
 
-    /// The panel before anything is typed: due staples, then everything else bought before, most frequent and recent
-    /// first.
-    static func idle(items: [Item], now: Date, limit: Int = 40) -> [Suggestion] {
-        let due = due(items: items, now: now, limit: limit)
-        let shown = Set(due.map(\.key))
-        let rest = items.filter { $0.state == .off && !shown.contains($0.id.key) }
-            .map { ($0, Habit.frecency(bought: $0.bought, at: now)) }
-            .sorted { ($0.1, $1.0.name) > ($1.1, $0.0.name) }
-            .map { suggestion($0.0) }
-        return Array((due + rest).prefix(limit))
-    }
-
     /// Matches for a typed name, best first. The typed text itself leads unless something already has its key, so
     /// what Return adds is always the first row. Remembered items come before catalog entries at the same match
     /// quality, and items already on the list come last unless they are the exact match.

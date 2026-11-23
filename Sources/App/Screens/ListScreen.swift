@@ -14,6 +14,7 @@ struct ListScreen: View {
     @State private var height: CGFloat = 0
 
     var body: some View {
+        let suggestions = isAdding ? model.suggestions(for: text) : []
         NavigationStack {
             VStack(spacing: 0) {
                 ZStack(alignment: .bottom) {
@@ -24,7 +25,9 @@ struct ListScreen: View {
                     if isAdding { closer }
                     if let undoable = model.undoable, !isAdding { UndoToast(undoable: undoable, undo: model.undo) }
                 }
-                if isAdding { SuggestionPanel(model: model, text: $text, maxHeight: height * 0.4) }
+                if !suggestions.isEmpty {
+                    SuggestionPanel(model: model, suggestions: suggestions, text: $text, maxHeight: height * 0.4)
+                }
                 AddBar(model: model, text: $text, isFocused: $isAdding)
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }

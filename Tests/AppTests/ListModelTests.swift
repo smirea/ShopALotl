@@ -58,4 +58,16 @@ import Testing
         #expect(model.list.grouping == .category)
         #expect(drawn(model.sections) == ["produce: Bananas", "bakery: Bread", "dairy: Milk"])
     }
+
+    @Test func suggestionsStayEmptyUntilOneNameIsTyped() throws {
+        let model = try #require(ListModel(listID: list, store: store))
+        model.add("pickles")
+        model.toggle(id("pickles"))
+        model.clearChecked()
+
+        #expect(model.suggestions(for: "").isEmpty)
+        #expect(model.suggestions(for: "   ").isEmpty)
+        #expect(model.suggestions(for: "milk, bread").isEmpty)
+        #expect(model.suggestions(for: "pi").contains { $0.name == "Pickles" && $0.status == .remembered })
+    }
 }

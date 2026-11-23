@@ -27,11 +27,6 @@ import Testing
         #expect(Suggestions.due(items: items, now: now).map(\.name) == ["Bread", "Eggs", "Milk"])
     }
 
-    @Test func theIdlePanelLeadsWithDueStaplesThenWhatWasBoughtMostAndLatest() {
-        let items = [item("Rice", every: 30, ago: 200, times: 2), item("Milk", every: 7, ago: 7), item("Eggs", every: 7, ago: 1, times: 8), item("Bread", state: .needed)]
-        #expect(Suggestions.idle(items: items, now: now).map(\.name) == ["Milk", "Eggs", "Rice"])
-    }
-
     @Test func typingMatchesRememberedItemsBeforeTheCatalogAndLeadsWithTheTypedText() {
         let items = [item("Miso paste", quantity: "2"), item("Almond milk")]
         let matches = Suggestions.matches(for: "mi", items: items, catalog: catalog, now: now)
