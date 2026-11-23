@@ -70,11 +70,11 @@ final class ListModel {
 
     var due: [Suggestion] { Suggestions.due(items: snapshot.items, now: .now) }
 
-    /// The add panel's rows for the field's text. Text with a separator adds several items, so only that is offered.
+    /// The add panel's rows for the field's text. Empty text offers nothing so the list stays unobstructed, and text
+    /// with a separator adds several items at once, so autocomplete waits for a single entry.
     func suggestions(for text: String) -> [Suggestion] {
         let entries = EntryParser.entries(in: text)
-        guard let entry = entries.first else { return Suggestions.idle(items: snapshot.items, now: .now) }
-        guard entries.count == 1 else { return [] }
+        guard entries.count == 1, let entry = entries.first else { return [] }
         return Suggestions.matches(for: entry.name, items: snapshot.items, catalog: catalog, now: .now)
     }
 

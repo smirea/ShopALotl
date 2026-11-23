@@ -1,17 +1,16 @@
 import SwiftUI
 
-/// What the add field offers while it has focus: the staples and past purchases before anything is typed, matches
-/// after. The best match sits at the bottom, next to the field and the thumb. It is as tall as its rows, up to
-/// `maxHeight`, so the list stays in sight above it.
+/// Matches for what is typed in the add field. The best match sits at the bottom, next to the field and the thumb. It
+/// is as tall as its rows, up to `maxHeight`, so the list stays in sight above it.
 struct SuggestionPanel: View {
     let model: ListModel
+    let suggestions: [Suggestion]
     @Binding var text: String
     let maxHeight: CGFloat
 
     @State private var contentHeight: CGFloat = 0
 
     var body: some View {
-        let suggestions = model.suggestions(for: text)
         ScrollView {
             VStack(spacing: 0) {
                 ForEach(suggestions.reversed()) { suggestion in
