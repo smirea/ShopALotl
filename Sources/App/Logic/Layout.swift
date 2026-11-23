@@ -27,6 +27,23 @@ struct ListSection: Identifiable, Equatable, Sendable {
     var rows: [ListRow]
 }
 
+enum DisplayRow: Identifiable, Equatable, Sendable {
+    case header(Category)
+    case item(ListRow, inlineCategory: Category?, showsDividerAbove: Bool)
+
+    enum ID: Hashable, Sendable {
+        case header(Category)
+        case item(ItemID)
+    }
+
+    var id: ID {
+        switch self {
+        case let .header(category): .header(category)
+        case let .item(row, _, _): .item(row.id)
+        }
+    }
+}
+
 /// Arranges a list's items into sections. A checked item stays in its aisle, struck through, so checking never moves
 /// a row. Where a row belongs (`ideal`) is kept apart from where it is drawn (`sections(_:held:)`): a row stays where
 /// it was drawn until the screen settles, so a late category answer, or a check while checked items are hidden, never
@@ -65,5 +82,33 @@ enum Layout {
             }
             return ListSection(id: id, rows: sorted)
         }
+    }
+
+    /// Flattens drawn sections into list rows. An aisle with one item omits its header and shows its category inline
+    /// on the item; the first inline item after a headed aisle carries a top divider so the group boundary stays clear.
+    static func displayRows(from sections: [ListSection]) -> [DisplayRow] {
+        var result: [DisplayRow] = []
+        var previousWasHeaded = false
+        for section in sections where !section.rows.isEmpty {
+            switch section.id {
+            case .plain:
+                previousWasHeaded = false
+                for row in section.rows {
+                    result.append(.item(row, inlineCategory: nil, showsDividerAbove: false))
+                }
+            case let .aisle(category):
+                if section.rows.count == 1, let only = section.rows.first {
+                    result.append(.item(only, inlineCategory: category, showsDividerAbove: previousWasHeaded))
+                    previousWasHeaded = false
+                } else {
+                    result.append(.header(category))
+                    for row in section.rows {
+                        result.append(.item(row, inlineCategory: nil, showsDividerAbove: false))
+                    }
+                    previousWasHeaded = true
+                }
+            }
+        }
+        return result
     }
 }

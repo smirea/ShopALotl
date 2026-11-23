@@ -59,4 +59,40 @@ import Testing
         let held = Layout.ideal(snapshot([item("Milk")]))
         #expect(Layout.sections(snapshot([item("Milk", state: .off, bought: [1])]), held: held).isEmpty)
     }
+
+    private func describe(_ rows: [DisplayRow]) -> [String] {
+        rows.map { entry in
+            switch entry {
+            case let .header(category): "header:\(category.rawValue)"
+            case let .item(row, inline, divider): "\(divider ? "---" : "")\(row.item.name)\(inline.map { "[\($0.rawValue)]" } ?? "")"
+            }
+        }
+    }
+
+    @Test func singleItemAislesOmitHeadersAndShowTheirCategoryInlineWhilePlainListsShowNeither() {
+        let grouped = Layout.sections(snapshot([
+            item("Apples"), item("Bananas"),
+            item("Bread"),
+            item("Rice"),
+            item("Chips"), item("Popcorn"),
+            item("Paper towels"),
+        ]))
+        #expect(describe(Layout.displayRows(from: grouped)) == [
+            "header:produce", "Apples", "Bananas",
+            "---Bread[bakery]",
+            "Rice[pantry]",
+            "header:snacks", "Chips", "Popcorn",
+            "---Paper towels[household]",
+        ])
+
+        let allSingle = Layout.sections(snapshot([item("Apples"), item("Bread"), item("Rice")]))
+        #expect(describe(Layout.displayRows(from: allSingle)) == [
+            "Apples[produce]",
+            "Bread[bakery]",
+            "Rice[pantry]",
+        ])
+
+        let plain = Layout.sections(snapshot([item("Apples", added: 0), item("Bread", added: 1)], grouping: .none))
+        #expect(describe(Layout.displayRows(from: plain)) == ["Apples", "Bread"])
+    }
 }
