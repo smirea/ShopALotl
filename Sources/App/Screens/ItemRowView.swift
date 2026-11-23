@@ -5,6 +5,7 @@ struct ItemRowView: View {
     let row: ListRow
     let aisles: [Category]
     let model: ListModel
+    var inlineCategory: Category? = nil
     let edit: () -> Void
 
     private var item: Item { row.item }
@@ -19,6 +20,7 @@ struct ItemRowView: View {
                     .font(.title2)
                     .foregroundStyle(isChecked ? Color.accentColor : Color.secondary)
                     .contentTransition(.symbolEffect(.replace))
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.name)
                         .strikethrough(isChecked)
@@ -30,10 +32,25 @@ struct ItemRowView: View {
                     }
                 }
                 Spacer(minLength: 8)
-                if !item.quantity.isEmpty {
-                    Text(item.quantity)
-                        .font(.callout.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                if !item.quantity.isEmpty || inlineCategory != nil {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        if !item.quantity.isEmpty {
+                            Text(item.quantity)
+                                .font(.callout.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                        if let inlineCategory {
+                            HStack(spacing: 4) {
+                                Image(systemName: inlineCategory.symbol)
+                                    .accessibilityHidden(true)
+                                Text(inlineCategory.title)
+                            }
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                        }
+                    }
+                    .layoutPriority(1)
                 }
             }
             .contentShape(Rectangle())

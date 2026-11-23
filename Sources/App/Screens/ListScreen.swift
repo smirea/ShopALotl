@@ -57,7 +57,7 @@ struct ListScreen: View {
                     }
                     Button(
                         model.list.grouping == .category ? "Hide Categories" : "Show Categories",
-                        systemImage: model.list.grouping == .category ? "tag" : "tag.slash",
+                        systemImage: model.list.grouping == .category ? "list.bullet.indent" : "list.bullet",
                         action: model.toggleGrouping
                     )
                 }
@@ -80,40 +80,32 @@ struct ListScreen: View {
     }
 
     private var list: some View {
-        ScrollViewReader { scroller in
+        let rows = Layout.displayRows(from: model.sections)
+        return ScrollViewReader { scroller in
             List {
-                ForEach(model.sections) { section in
-                    if case let .aisle(category) = section.id {
-                        Section {
-                            rows(in: section)
-                        } header: {
-                            aisleHeader(for: category)
+                ForEach(rows) { entry in
+                    switch entry {
+                    case let .header(category):
+                        aisleHeader(for: category, isFirst: entry.id == rows.first?.id)
+                    case let .item(row, inlineCategory, showsDividerAbove):
+                        ItemRowView(row: row, aisles: model.list.aisles, model: model, inlineCategory: inlineCategory) {
+                            editing = row.id
                         }
-                        .listSectionSeparator(.hidden)
-                    } else {
-                        Section {
-                            rows(in: section)
-                        }
-                        .listSectionSeparator(.hidden)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: showsDividerAbove ? 11 : 5, leading: 10, bottom: 5, trailing: 10))
+                        .listRowBackground(showsDividerAbove ? topDividerBackground : nil)
                     }
                 }
             }
             .listStyle(.plain)
+            .environment(\.defaultMinListRowHeight, 1)
             .onScrollPhaseChange { _, phase in
                 if phase != .idle { model.touch() }
             }
             .onChange(of: model.landed) { _, landed in
                 guard let last = landed?.rows.last else { return }
-                withAnimation(.snappy) { scroller.scrollTo(last, anchor: .center) }
+                withAnimation(.snappy) { scroller.scrollTo(DisplayRow.ID.item(last), anchor: .center) }
             }
-        }
-    }
-
-    private func rows(in section: ListSection) -> some View {
-        ForEach(section.rows) { row in
-            ItemRowView(row: row, aisles: model.list.aisles, model: model) { editing = row.id }
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 9, leading: 10, bottom: 9, trailing: 10))
         }
     }
 
@@ -126,25 +118,38 @@ struct ListScreen: View {
         .accessibilityLabel("Close")
     }
 
-    private func aisleHeader(for category: Category) -> some View {
-        HStack(spacing: 8) {
-            headerLine
-            HStack(spacing: 5) {
-                Image(systemName: category.symbol)
-                    .accessibilityHidden(true)
-                Text(category.title)
+    private func aisleHeader(for category: Category, isFirst: Bool) -> some View {
+        ZStack {
+            HStack(spacing: 8) {
+                headerLine
+                HStack(spacing: 5) {
+                    Image(systemName: category.symbol)
+                    Text(category.title)
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .layoutPriority(1)
+                headerLine
             }
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-            .layoutPriority(1)
-            headerLine
+            .accessibilityHidden(true)
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(category.title)
         .accessibilityAddTraits(.isHeader)
-        .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 8, trailing: 0))
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets(top: isFirst ? 2 : 12, leading: 0, bottom: 4, trailing: 0))
+    }
+
+    private var topDividerBackground: some View {
+        VStack(spacing: 0) {
+            headerLine
+                .padding(.top, 3)
+            Spacer(minLength: 0)
+        }
+        .accessibilityHidden(true)
     }
 
     private var headerLine: some View {
