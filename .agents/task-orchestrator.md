@@ -14,7 +14,7 @@ Repo config for the global `task-orchestrator` skill (`~/code/ai-files/skills/ta
 - Natural areas: the list screen (`Sources/App/Screens`), the rules (`Sources/App/Logic`), the store (`Sources/App/Store`), sync (`Sources/App/Sync`), and the server (`server/`). The app is one screen, so every task that changes how that screen looks or behaves goes in one job.
 - Clients a job can cover: iPhone, Mac, server.
 - Usual shared work: a change to `server/schema.ts`, a new rule in `Sources/App/Logic` that several tasks rely on. Schema changes are additive, so schema jobs don't wait on each other: the one that merges second reruns `bun run generate`.
-- Human-only tasks: a check on a physical iPhone.
+- Human-only tasks: none usual. A check on a physical iPhone is never a task: it goes in the child's `verification` and your final summary.
 - Known shared failures: a simulator runtime that stopped booting.
 
 # Worker
