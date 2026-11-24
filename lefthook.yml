@@ -14,7 +14,13 @@ pre-commit:
             glob: "*.{js,mjs,mts,ts,tsx,svelte,json,jsonc}"
             run: bun run typecheck
           - name: schema
-            glob: ['server/schema.ts', 'scripts/generate.ts', 'Sources/App/Sync/Generated/*', 'bun.lock']
+            glob:
+              [
+                "server/schema.ts",
+                "scripts/generate.ts",
+                "Sources/App/Sync/Generated/*",
+                "bun.lock",
+              ]
             run: bun run schema:check
           # The whole suite: logic tests run in-process in milliseconds, so selecting by diff would save little and
           # could miss a test whose input is not an import. Git exports GIT_DIR and GIT_INDEX_FILE to hooks, so a
@@ -24,5 +30,5 @@ pre-commit:
             run: unset $(git rev-parse --local-env-vars); bun run test
           # The app's logic tests run on the Mac with no simulator. The first run in a new worktree also compiles the package.
           - name: swift
-            glob: '*.swift'
+            glob: "*.swift"
             run: unset $(git rev-parse --local-env-vars); swift test

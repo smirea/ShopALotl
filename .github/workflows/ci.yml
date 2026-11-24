@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: ['master']
+    branches: ["master"]
   workflow_dispatch:
 
 permissions:
@@ -25,10 +25,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        task: ['lint:ci', typecheck, test, build, 'schema:check']
+        task: ["lint:ci", typecheck, test, build, "schema:check"]
     env:
-      CI: 'true'
-      LEFTHOOK: '0'
+      CI: "true"
+      LEFTHOOK: "0"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -81,8 +81,8 @@ jobs:
         task: [package, app]
     env:
       SWIFT_DIRECTORY: .
-      CI: 'true'
-      LEFTHOOK: '0'
+      CI: "true"
+      LEFTHOOK: "0"
       # CI never runs env-manager, so no LocalSecrets.xcconfig or Env.xcconfig exists here. xcodebuild resolves the
       # settings from this environment, and Config/check-env.sh fails the build when one is missing. Neither is secret.
       API_URL: http://127.0.0.1:6191
