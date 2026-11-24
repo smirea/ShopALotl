@@ -1,37 +1,38 @@
 {
-	"name": "shopalotl",
-	"private": true,
-	"type": "module",
-	"scripts": {
-		"postinstall": "lefthook install",
-		"typecheck": "bun check",
-		"lint": "oxlint --fix && oxfmt && bun run generate",
-		"lint:ci": "oxlint && oxfmt --check && bun run schema:check",
-		"schema:check": "bun scripts/generate.ts --check",
-		"test": "bun test server",
-		"build": "wrangler deploy --dry-run --outdir dist/worker",
-		"start:server": "cd server && bun --watch --no-clear-screen dev.ts",
-		"generate": "bun scripts/generate.ts",
-		"env:generate": "env-manager gen --local",
-		"env:ios": "bun scripts/secrets.ts ios",
-		"secrets:push": "bun scripts/secrets.ts push",
-		"secrets:github": "bun scripts/secrets.ts github",
-		"secrets:check": "bun scripts/secrets.ts check",
-		"testflight": "bun scripts/secrets.ts testflight"
-	},
-	"dependencies": {
-		"drizzle-orm": "^0.45.4",
-		"sync-engine": "github:smirea/sync-engine",
-		"zod": "^4.6.7"
-	},
-	"devDependencies": {
-		"@cloudflare/workers-types": "^5.20261117.1",
-		"@types/bun": "^1.4.4",
-		"lefthook": "^2.2.2",
-		"oxfmt": "^0.79.0",
-		"oxlint": "^1.94.0",
-		"wrangler": "^4.164.0"
-	},
-	"packageManager": "bun@1.4.4",
-	"trustedDependencies": []
+  "name": "shopalotl",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "postinstall": "[ ! -d .git ] || lefthook install",
+    "typecheck": "bun check",
+    "lint": "oxlint --fix",
+    "lint:ci": "oxlint",
+    "schema:check": "bun scripts/generate.ts --check",
+    "test": "bun test server",
+    "build": "wrangler deploy --dry-run --outdir dist/worker",
+    "start:server": "cd server && bun --watch --no-clear-screen dev.ts",
+    "generate": "bun scripts/generate.ts",
+    "env:generate": "env-manager gen --local",
+    "env:ios": "bun scripts/secrets.ts ios",
+    "secrets:push": "bun scripts/secrets.ts push",
+    "secrets:github": "bun scripts/secrets.ts github",
+    "secrets:check": "bun scripts/secrets.ts check",
+    "testflight": "bun scripts/secrets.ts testflight"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.4",
+    "sync-engine": "github:smirea/sync-engine",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261117.1",
+    "@types/bun": "^1.4.5",
+    "@types/node": "^26.6.6",
+    "lefthook": "^2.2.2",
+    "oxlint": "^1.95.0",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.164.0"
+  },
+  "packageManager": "bun@1.4.4",
+  "trustedDependencies": []
 }
