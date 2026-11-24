@@ -49,8 +49,8 @@
 
 # Checks
 
-- `swift test` runs the app's logic tests on macOS, `bun run test` the server tests, and `bun run typecheck` the TypeScript. `bun run lint` fixes lint and formatting with oxlint and oxfmt and regenerates the Swift schema; `bun run lint:ci` only checks, the schema included.
-- The pre-commit hook, `lefthook.yml`, is installed by `bun install`. It runs in parallel: the fixers on the staged files, and, when a file of their kind is staged, the type check, the schema check, the server tests, and `swift test`. It takes about a second warm; the first `swift test` in a new worktree also compiles the package.
+- `swift test` runs the app's logic tests on macOS, `bun run test` the server tests, and `bun run typecheck` the TypeScript. `bun run lint` fixes lint with oxlint; `bun run lint:ci` only checks. `bun run schema:check` fails when the generated Swift schema is stale.
+- The pre-commit hook, `lefthook.yml`, is installed by `bun install`. It runs in parallel: oxlint on the staged files, and, when a file of their kind is staged, the type check, the schema check, the server tests, and `swift test`. It takes about a second warm; the first `swift test` in a new worktree also compiles the package.
 - CI runs `lint:ci`, `typecheck`, `test` and `build` as their own jobs on every change, and `swift test` and the iOS app build on a macOS runner when native files changed. `.github/CI.md` has the details.
 - Read the `tests` skill before adding, changing or fixing a test.
 

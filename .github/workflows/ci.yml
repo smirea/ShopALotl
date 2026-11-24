@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        task: ['lint:ci', typecheck, test, build]
+        task: ['lint:ci', typecheck, test, build, 'schema:check']
     env:
       CI: 'true'
       LEFTHOOK: '0'
@@ -39,7 +39,7 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: ${{ runner.os }}-${{ runner.arch }}-bun-${{ hashFiles('.bun-version') }}-${{ hashFiles('bun.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-bun-${{ hashFiles('.bun-version') }}-${{ hashFiles('bun.lock', 'bun.lockb') }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-bun-${{ hashFiles('.bun-version') }}-
       - name: Install dependencies
