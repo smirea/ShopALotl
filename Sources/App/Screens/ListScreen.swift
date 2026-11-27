@@ -95,7 +95,7 @@ struct ListScreen: View {
                             editing = row.id
                         }
                         .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: showsDividerAbove ? 11 : 5, leading: 10, bottom: 5, trailing: 10))
+                        .listRowInsets(EdgeInsets(top: showsDividerAbove ? 6 : 0, leading: 0, bottom: 0, trailing: 0))
                         .listRowBackground(showsDividerAbove ? topDividerBackground : nil)
                     }
                 }
@@ -143,13 +143,13 @@ struct ListScreen: View {
         .accessibilityAddTraits(.isHeader)
         .listRowSeparator(.hidden)
         .listRowBackground(Color.clear)
-        .listRowInsets(EdgeInsets(top: isFirst ? 2 : 12, leading: 0, bottom: 4, trailing: 0))
+        .listRowInsets(EdgeInsets(top: isFirst ? 2 : 10, leading: 0, bottom: 4, trailing: 0))
     }
 
     private var topDividerBackground: some View {
         VStack(spacing: 0) {
             headerLine
-                .padding(.top, 3)
+                .padding(.top, 2)
             Spacer(minLength: 0)
         }
         .accessibilityHidden(true)
