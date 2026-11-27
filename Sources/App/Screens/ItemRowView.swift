@@ -15,12 +15,7 @@ struct ItemRowView: View {
         Button {
             model.toggle(item.id)
         } label: {
-            HStack(spacing: 12) {
-                Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundStyle(isChecked ? Color.accentColor : Color.secondary)
-                    .contentTransition(.symbolEffect(.replace))
-                    .accessibilityHidden(true)
+            HStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.name)
                         .strikethrough(isChecked)
@@ -31,7 +26,7 @@ struct ItemRowView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                Spacer(minLength: 8)
+                Spacer(minLength: 12)
                 if !item.quantity.isEmpty || inlineCategory != nil {
                     VStack(alignment: .trailing, spacing: 2) {
                         if !item.quantity.isEmpty {
@@ -53,6 +48,8 @@ struct ItemRowView: View {
                     .layoutPriority(1)
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 7)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
