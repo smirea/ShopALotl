@@ -17,12 +17,9 @@ struct ItemRowView: View {
         } label: {
             HStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(item.name)
-                            .strikethrough(isChecked)
-                            .foregroundStyle(isChecked ? .secondary : .primary)
-                        if let source = item.sources.first { SourceIcon(app: source.app) }
-                    }
+                    Text(item.name)
+                        .strikethrough(isChecked)
+                        .foregroundStyle(isChecked ? .secondary : .primary)
                     if !item.note.isEmpty {
                         Text(item.note)
                             .font(.caption)
@@ -30,22 +27,31 @@ struct ItemRowView: View {
                     }
                 }
                 Spacer(minLength: 12)
-                if !item.quantity.isEmpty || inlineCategory != nil {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        if !item.quantity.isEmpty {
-                            Text(item.quantity)
-                                .font(.callout.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                        }
-                        if let inlineCategory {
-                            HStack(spacing: 4) {
-                                Image(systemName: inlineCategory.symbol)
-                                    .accessibilityHidden(true)
-                                Text(inlineCategory.title)
+                if !item.quantity.isEmpty || inlineCategory != nil || item.sources.first != nil {
+                    HStack(spacing: 8) {
+                        if !item.quantity.isEmpty || inlineCategory != nil {
+                            VStack(alignment: .trailing, spacing: 2) {
+                                if !item.quantity.isEmpty {
+                                    Text(item.quantity)
+                                        .font(.callout.monospacedDigit())
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.trailing)
+                                }
+                                if let inlineCategory {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: inlineCategory.symbol)
+                                            .accessibilityHidden(true)
+                                        Text(inlineCategory.title)
+                                    }
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                }
                             }
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                        }
+                        if let source = item.sources.first {
+                            SourceIcon(app: source.app)
+                                .opacity(isChecked ? 0.5 : 1)
                         }
                     }
                     .layoutPriority(1)
