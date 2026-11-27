@@ -70,6 +70,12 @@ export const items = sqliteTable("items", {
    * count, the last purchase, and the interval between purchases cannot disagree after a merge.
    */
   bought: json("bought").notNull().default([]),
+  /**
+   * `[{ app, id, title }]`: what put the item on the list from another of the owner's apps, such as a recipe in A
+   * Better Me (`POST /api/add-items`). Empty for an item the owner typed. Each add from another app appends its
+   * source; an item that comes back onto the list starts over with the source that brought it back.
+   */
+  sources: json("sources").notNull().default([]),
 });
 
 /**
@@ -93,6 +99,15 @@ const name = z.string().trim().min(1).max(200);
 const instant = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
 /** Not an enum: a newer app can add a category without a deploy. */
 const categoryId = z.string().min(1).max(64);
+/** `app` is not an enum either: the app shows one it does not know with a generic icon. */
+export const itemSource = z.object({
+  app: z.string().min(1).max(64),
+  id: z.string().min(1).max(200),
+  title: z.string().max(200),
+});
+export type ItemSource = z.infer<typeof itemSource>;
+/** Enough for a week of recipes that all need onions. */
+export const MAX_SOURCES = 20;
 
 /**
  * Per-column checks. The engine validates columns, never the id, and has no cross-row constraints, so the app builds
@@ -116,6 +131,7 @@ export const schema = defineSchema({
       note: z.string().max(500),
       addedAt: instant,
       bought: z.array(instant).max(MAX_BOUGHT),
+      sources: z.array(itemSource).max(MAX_SOURCES),
     },
     item_categories: {
       nameKey: z.string().min(1).max(200),

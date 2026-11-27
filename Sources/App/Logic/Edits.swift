@@ -16,6 +16,8 @@ enum Edits {
             item.state = .needed
             item.addedAt = now
             item.name = entry.name
+            // The recipe that put it on the list last time is not why it is back.
+            item.sources = []
         }
         if !entry.quantity.isEmpty { item.quantity = entry.quantity }
         if !entry.note.isEmpty { item.note = entry.note }
@@ -65,7 +67,7 @@ enum Edits {
         let bought = Array(Set(item.bought + (existingAtNewKey?.bought ?? [])).sorted().suffix(Item.maxBought))
         let moved = Item(
             id: ItemID(listID: item.id.listID, key: key), name: edited.name, state: item.state, quantity: edited.quantity,
-            note: edited.note, addedAt: item.addedAt, bought: bought
+            note: edited.note, addedAt: item.addedAt, bought: bought, sources: item.sources
         )
         return (nil, moved)
     }

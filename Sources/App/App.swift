@@ -21,6 +21,9 @@ struct ShopALotlApp: App {
         #else
         inference = nil
         #endif
+        #if os(iOS)
+        Task.detached(priority: .utility) { SharedLink.write() }
+        #endif
         #if canImport(UIKit)
         Feedback.enable()
         Feedback.pinned = ["ProcrastiMate"]
@@ -51,6 +54,13 @@ struct ShopALotlApp: App {
                 .environment(app)
                 // The catalog's global accent alone left controls blue on iOS 27, so the tint is set here too.
                 .tint(Color("AccentColor"))
+                // `shopalotl://list?id=<listId>` opens a list, as A Better Me links to the one it just added to.
+                .onOpenURL { url in
+                    guard url.host() == "list",
+                          let id = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "id" })?.value
+                    else { return }
+                    app.openLinked(id)
+                }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active { store.refreshFromOtherProcesses() }
                 }

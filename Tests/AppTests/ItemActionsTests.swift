@@ -53,6 +53,17 @@ import Testing
         #expect(try items() == ["Eggs needed bought:0", "Milk needed ×2 bought:1"])
     }
 
+    @Test func typingBackAnItemAnotherAppAddedDropsItsSourceButTypingOneStillNeededKeepsIt() throws {
+        let recipe = ItemSource(app: "a-better-me", id: "r1", title: "Curry")
+        try store.database.pool.write { db in
+            try Item(id: id("onion"), name: "Onion", state: .checked, addedAt: .at(0), sources: [recipe]).insert(db)
+            try Item(id: id("rice"), name: "Rice", addedAt: .at(0), sources: [recipe]).insert(db)
+        }
+        _ = add("onion, 2 rice")
+        let sources = try store.database.pool.read { try Item.readable($0, sql: "SELECT * FROM items ORDER BY id") }.map(\.sources)
+        #expect(sources == [[], [recipe]])
+    }
+
     @Test func removingAnItemNeverBoughtLeavesNothingAndOneBoughtBeforeIsRemembered() throws {
         _ = add("mlik, milk")
         store.toggleChecked(id("milk"), at: .at(0))

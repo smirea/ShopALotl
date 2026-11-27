@@ -6,6 +6,8 @@ import Observation
 final class AppModel {
     private(set) var current: ListModel
     @ObservationIgnored private let store: LocalStore
+    /// A list a link asked for before it synced here, such as one A Better Me just created, with when it was asked.
+    @ObservationIgnored private var pending: (id: String, at: Date)?
 
     init(store: LocalStore) {
         self.store = store
@@ -23,6 +25,26 @@ final class AppModel {
         #if os(iOS)
         store.reloadWidget()
         #endif
+    }
+
+    /// Opens the list a link names. One this device does not have yet opens when it arrives, within a minute.
+    func openLinked(_ listID: String, at now: Date = .now) {
+        if ListModel(listID: listID, store: store) == nil {
+            pending = (listID, now)
+        } else {
+            pending = nil
+            open(listID)
+        }
+    }
+
+    /// Called when the lists change, so a linked list that just synced opens.
+    func openPending(at now: Date = .now) {
+        guard let pending else { return }
+        guard now.timeIntervalSince(pending.at) < 60 else {
+            self.pending = nil
+            return
+        }
+        openLinked(pending.id, at: pending.at)
     }
 
     /// A list deleted on another device closes here too, so nothing more is written to it.

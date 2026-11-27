@@ -6,6 +6,7 @@ import { mkdirSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { bunSqlite } from "sync-engine/bun-sqlite";
 import { createSpace, handleSync, LIVE_PROTOCOL } from "sync-engine/core";
+import { handleSpaceRoute, isSpaceRoute } from "./add-items";
 import { handle } from "./api";
 import { parseConfig } from "./config";
 import env from "./env";
@@ -16,7 +17,8 @@ const file = join(root, ".data", `${basename(root)}.sqlite`);
 mkdirSync(dirname(file), { recursive: true });
 
 const config = parseConfig(env);
-const space = createSpace(bunSqlite(file), schema);
+const driver = bunSqlite(file);
+const space = createSpace(driver, schema);
 space.migrate();
 
 const server = Bun.serve({
@@ -40,7 +42,9 @@ const server = Bun.serve({
           );
         }
         const before = space.head();
-        const response = await handleSync(space, request);
+        const response = isSpaceRoute(request)
+          ? await handleSpaceRoute(request, space, driver)
+          : await handleSync(space, request);
         if (space.head() > before) server.publish("live", JSON.stringify({ head: space.head() }));
         return response;
       },

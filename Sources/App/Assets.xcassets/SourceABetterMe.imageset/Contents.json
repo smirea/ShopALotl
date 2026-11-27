@@ -1,0 +1,12 @@
+{
+  "images": [
+    {
+      "filename": "a-better-me.png",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

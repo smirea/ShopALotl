@@ -4,7 +4,7 @@ import SyncEngine
 let syncSchema = SyncSchema(
     tables: [
         SyncTable(name: "lists", columns: ["name", "grouping", "category_order", "position", "created_at"]),
-        SyncTable(name: "items", columns: ["list_id", "name", "state", "quantity", "note", "added_at", "bought"]),
+        SyncTable(name: "items", columns: ["list_id", "name", "state", "quantity", "note", "added_at", "bought", "sources"]),
         SyncTable(name: "item_categories", columns: ["name_key", "source", "category"]),
     ],
     statements: [
@@ -14,7 +14,7 @@ let syncSchema = SyncSchema(
         "ALTER TABLE lists ADD COLUMN category_order TEXT NOT NULL DEFAULT '[]'",
         "ALTER TABLE lists ADD COLUMN position REAL NOT NULL DEFAULT 0",
         "ALTER TABLE lists ADD COLUMN created_at TEXT NOT NULL",
-        "CREATE TABLE IF NOT EXISTS items (id TEXT PRIMARY KEY, list_id TEXT NOT NULL, name TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'needed', quantity TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '', added_at TEXT NOT NULL, bought TEXT NOT NULL DEFAULT '[]')",
+        "CREATE TABLE IF NOT EXISTS items (id TEXT PRIMARY KEY, list_id TEXT NOT NULL, name TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'needed', quantity TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '', added_at TEXT NOT NULL, bought TEXT NOT NULL DEFAULT '[]', sources TEXT NOT NULL DEFAULT '[]')",
         "ALTER TABLE items ADD COLUMN list_id TEXT NOT NULL",
         "ALTER TABLE items ADD COLUMN name TEXT NOT NULL",
         "ALTER TABLE items ADD COLUMN state TEXT NOT NULL DEFAULT 'needed'",
@@ -22,6 +22,7 @@ let syncSchema = SyncSchema(
         "ALTER TABLE items ADD COLUMN note TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE items ADD COLUMN added_at TEXT NOT NULL",
         "ALTER TABLE items ADD COLUMN bought TEXT NOT NULL DEFAULT '[]'",
+        "ALTER TABLE items ADD COLUMN sources TEXT NOT NULL DEFAULT '[]'",
         "CREATE TABLE IF NOT EXISTS item_categories (id TEXT PRIMARY KEY, name_key TEXT NOT NULL, source TEXT NOT NULL, category TEXT NOT NULL)",
         "ALTER TABLE item_categories ADD COLUMN name_key TEXT NOT NULL",
         "ALTER TABLE item_categories ADD COLUMN source TEXT NOT NULL",
@@ -44,6 +45,7 @@ let syncSchema = SyncSchema(
         "CREATE TRIGGER IF NOT EXISTS _ob_u_items_note AFTER UPDATE OF note ON items\n  WHEN coalesce((SELECT value FROM _meta WHERE key = 'applying'), 0) = 0 AND OLD.note IS NOT NEW.note\n  BEGIN INSERT INTO _outbox (\"table\", id, op, col) VALUES ('items', NEW.id, 'update', 'note'); END",
         "CREATE TRIGGER IF NOT EXISTS _ob_u_items_added_at AFTER UPDATE OF added_at ON items\n  WHEN coalesce((SELECT value FROM _meta WHERE key = 'applying'), 0) = 0 AND OLD.added_at IS NOT NEW.added_at\n  BEGIN INSERT INTO _outbox (\"table\", id, op, col) VALUES ('items', NEW.id, 'update', 'added_at'); END",
         "CREATE TRIGGER IF NOT EXISTS _ob_u_items_bought AFTER UPDATE OF bought ON items\n  WHEN coalesce((SELECT value FROM _meta WHERE key = 'applying'), 0) = 0 AND OLD.bought IS NOT NEW.bought\n  BEGIN INSERT INTO _outbox (\"table\", id, op, col) VALUES ('items', NEW.id, 'update', 'bought'); END",
+        "CREATE TRIGGER IF NOT EXISTS _ob_u_items_sources AFTER UPDATE OF sources ON items\n  WHEN coalesce((SELECT value FROM _meta WHERE key = 'applying'), 0) = 0 AND OLD.sources IS NOT NEW.sources\n  BEGIN INSERT INTO _outbox (\"table\", id, op, col) VALUES ('items', NEW.id, 'update', 'sources'); END",
         "CREATE TRIGGER IF NOT EXISTS _ob_i_item_categories AFTER INSERT ON item_categories\n  WHEN coalesce((SELECT value FROM _meta WHERE key = 'applying'), 0) = 0\n  BEGIN INSERT INTO _outbox (\"table\", id, op, col) VALUES ('item_categories', NEW.id, 'insert', NULL); END",
         "CREATE TRIGGER IF NOT EXISTS _ob_d_item_categories AFTER DELETE ON item_categories\n  WHEN coalesce((SELECT value FROM _meta WHERE key = 'applying'), 0) = 0\n  BEGIN INSERT INTO _outbox (\"table\", id, op, col) VALUES ('item_categories', OLD.id, 'delete', NULL); END",
         "CREATE TRIGGER IF NOT EXISTS _ob_u_item_categories_name_key AFTER UPDATE OF name_key ON item_categories\n  WHEN coalesce((SELECT value FROM _meta WHERE key = 'applying'), 0) = 0 AND OLD.name_key IS NOT NEW.name_key\n  BEGIN INSERT INTO _outbox (\"table\", id, op, col) VALUES ('item_categories', NEW.id, 'update', 'name_key'); END",
