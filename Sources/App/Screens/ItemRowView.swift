@@ -65,7 +65,7 @@ struct ItemRowView: View {
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(isChecked ? .isSelected : [])
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            Button(role: .destructive) { model.remove(item.id) } label: { Label("Remove", systemImage: "trash") }
+            Button(role: .destructive) { model.remove(item.id, listAnimates: true) } label: { Label("Remove", systemImage: "trash") }
         }
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             Button(action: edit) { Label("Edit", systemImage: "pencil") }.tint(.accentColor)

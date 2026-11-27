@@ -125,10 +125,12 @@ final class ListModel {
         reload()
     }
 
-    func remove(_ id: ItemID) {
+    /// A destructive swipe action animates its row away itself. Our animation on top of it first draws the row back
+    /// in place, so the swipe passes `listAnimates`.
+    func remove(_ id: ItemID, listAnimates: Bool = false) {
         guard let item = item(id) else { return }
         offerUndo(of: store.remove(id), "Removed \(item.name)")
-        reload()
+        reload(animated: !listAnimates)
     }
 
     func clearChecked() {
@@ -168,20 +170,20 @@ final class ListModel {
     }
 
     /// Redraws after a gesture. The rows `change` wrote go where they now belong, and every other row stays put.
-    private func reload(releasing change: ItemChange = ItemChange(), then drawn: @escaping () -> Void = {}) {
+    private func reload(releasing change: ItemChange = ItemChange(), animated: Bool = true, then drawn: @escaping () -> Void = {}) {
         touch()
         for row in change.rows { held[row.id] = nil }
         do {
-            receive(try store.database.pool.read { try ListSnapshot.fetch($0, listID: listID) }, then: drawn)
+            receive(try store.database.pool.read { try ListSnapshot.fetch($0, listID: listID) }, animated: animated, then: drawn)
         } catch {
             LocalStore.log.error("Reading list \(self.listID) failed: \(String(describing: error))")
         }
     }
 
     /// A change from the database: this screen's own write, or one from a sync or the category model.
-    private func receive(_ fresh: ListSnapshot?, then drawn: @escaping () -> Void = {}) {
+    private func receive(_ fresh: ListSnapshot?, animated: Bool = true, then drawn: @escaping () -> Void = {}) {
         guard let fresh else { return onGone() }
-        withAnimation(.snappy(duration: 0.25)) {
+        withAnimation(animated ? .snappy(duration: 0.25) : nil) {
             guard fresh != snapshot else { return }
             if fresh.list.grouping != snapshot.list.grouping { held = [:] }
             snapshot = fresh
