@@ -70,6 +70,7 @@ struct ListScreen: View {
         .sheet(isPresented: $managingLists) { ListsEditor() }
         .sensoryFeedback(.selection, trigger: model.checkedCount)
         .onChange(of: model.listID) { text = "" }
+        .onChange(of: lists.map(\.id)) { app.openPending() }
         .feedback(self)
     }
 

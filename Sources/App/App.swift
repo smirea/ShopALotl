@@ -59,7 +59,7 @@ struct ShopALotlApp: App {
                     guard url.host() == "list",
                           let id = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "id" })?.value
                     else { return }
-                    app.open(id)
+                    app.openLinked(id)
                 }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active { store.refreshFromOtherProcesses() }
