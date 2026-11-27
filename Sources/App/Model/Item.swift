@@ -28,6 +28,14 @@ enum ItemState: String, Sendable {
     case needed, checked, off
 }
 
+/// Another of the owner's apps that put an item on the list, and what in it did: A Better Me and a recipe.
+struct ItemSource: Hashable, Codable, Sendable {
+    /// The app's id, such as `a-better-me`. One this version does not know shows with a generic icon.
+    var app: String
+    var id: String
+    var title: String
+}
+
 /// One thing on one list, for as long as the list remembers it: the list entry, the autocomplete entry, and the
 /// purchase history in one row.
 struct Item: SyncedRecord {
@@ -46,11 +54,13 @@ struct Item: SyncedRecord {
     var addedAt: Date
     /// When it was checked off, ascending, at most `maxBought`.
     var bought: [Date]
+    /// What other apps put it on the list for, oldest first. Empty for an item the owner typed.
+    var sources: [ItemSource]
 
     var key: String { id.text }
     var isOnList: Bool { state != .off }
 
-    init(id: ItemID, name: String, state: ItemState = .needed, quantity: String = "", note: String = "", addedAt: Date, bought: [Date] = []) {
+    init(id: ItemID, name: String, state: ItemState = .needed, quantity: String = "", note: String = "", addedAt: Date, bought: [Date] = [], sources: [ItemSource] = []) {
         self.id = id
         self.name = name
         self.state = state
@@ -58,6 +68,7 @@ struct Item: SyncedRecord {
         self.note = note
         self.addedAt = addedAt
         self.bought = bought
+        self.sources = sources
     }
 
     init(row: Row) throws {
@@ -71,6 +82,8 @@ struct Item: SyncedRecord {
         note = row["note"]
         addedAt = try row.instant("added_at")
         bought = try row.array("bought", Instant.parse)
+        // A source another app version wrote in a shape this one cannot read drops them all, which only hides an icon.
+        sources = (try? JSONDecoder().decode([ItemSource].self, from: Data((row["sources"] as String? ?? "[]").utf8))) ?? []
     }
 
     func encode(to container: inout PersistenceContainer) {
@@ -82,5 +95,15 @@ struct Item: SyncedRecord {
         container["note"] = note
         container["added_at"] = Instant.text(addedAt)
         container["bought"] = RowJSON.text(bought.map(Instant.text))
+        container["sources"] = ItemSource.text(sources)
+    }
+}
+
+extension ItemSource {
+    /// Sorted keys, so re-saving unchanged sources writes the same text and fires no update trigger.
+    static func text(_ sources: [ItemSource]) -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        return String(decoding: (try? encoder.encode(sources)) ?? Data("[]".utf8), as: UTF8.self)
     }
 }

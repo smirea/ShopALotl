@@ -1,5 +1,7 @@
 import type { DurableObjectNamespace, DurableObjectState } from "@cloudflare/workers-types";
-import { SpaceObject } from "sync-engine/cloudflare";
+import { durableDriver, SpaceObject } from "sync-engine/cloudflare";
+import type { SqlDriver } from "sync-engine/core";
+import { handleSpaceRoute, isSpaceRoute } from "./add-items";
 import { handle } from "./api";
 import { parseConfig, type Config, type Settings } from "./config";
 import { schema } from "./schema";
@@ -8,8 +10,28 @@ type Env = Settings & { SPACE: DurableObjectNamespace };
 
 /** The owner's one space: a SQLite-backed Durable Object holding every synced table. */
 export class Space extends SpaceObject<Env> {
+  private readonly driver: SqlDriver;
+
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env, schema);
+    this.driver = durableDriver(ctx.storage);
+  }
+
+  override async fetch(request: Request): Promise<Response> {
+    if (!isSpaceRoute(request)) return super.fetch(request);
+    const before = this.space.head();
+    const response = await handleSpaceRoute(request, this.space, this.driver);
+    const head = this.space.head();
+    if (head > before) {
+      for (const socket of this.ctx.getWebSockets()) {
+        try {
+          socket.send(JSON.stringify({ head }));
+        } catch {
+          // a socket mid-close throws on send, and it has no one left to nudge
+        }
+      }
+    }
+    return response;
   }
 }
 

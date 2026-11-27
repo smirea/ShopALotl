@@ -37,6 +37,17 @@ struct ItemEditor: View {
                     }
                     TextField("Note", text: $note)
                 }
+                if !original.sources.isEmpty {
+                    Section("Added From") {
+                        ForEach(original.sources, id: \.self) { source in
+                            Label {
+                                Text(source.title.isEmpty ? SourceApp.name(source.app) : source.title)
+                            } icon: {
+                                SourceIcon(app: source.app, size: 20)
+                            }
+                        }
+                    }
+                }
                 if category != nil {
                     Section {
                         Picker("Aisle", selection: $category) {

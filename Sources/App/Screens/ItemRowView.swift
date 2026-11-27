@@ -22,9 +22,12 @@ struct ItemRowView: View {
                     .contentTransition(.symbolEffect(.replace))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(item.name)
-                        .strikethrough(isChecked)
-                        .foregroundStyle(isChecked ? .secondary : .primary)
+                    HStack(spacing: 6) {
+                        Text(item.name)
+                            .strikethrough(isChecked)
+                            .foregroundStyle(isChecked ? .secondary : .primary)
+                        if let source = item.sources.first { SourceIcon(app: source.app) }
+                    }
                     if !item.note.isEmpty {
                         Text(item.note)
                             .font(.caption)

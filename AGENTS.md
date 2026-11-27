@@ -61,6 +61,14 @@
 - `scripts/secrets.ts` is the one bridge from env-manager to the Worker, GitHub, and the app's production build settings. It never prints a value.
 - Secrets are optional in the schema, so offline generation works. `server/config.ts` lists what production requires in `REQUIRED_IN_PRODUCTION` and refuses to start without it.
 
+# Other apps
+
+- The owner's other apps add items over the server, not app to app: A Better Me adds a recipe's ingredients. `server/add-items.ts` serves `GET /api/lists` (switcher order, with the first list before it has a row, and each list's needed count) and `POST /api/add-items` (`{ list: { id } | { name }, source: { app, id, title }, items: [{ name, quantity }] }`), inside the space so the rows sync like any other write and live clients are nudged.
+- No setup and no accounts, the same paradigm as ProcrastiMate's `procrastimate-link`: at every launch the iOS app writes `{ "apiURL", "token" }` with its owner token to the generic password `shopalotl-link` (account `default`) in `FNYFHG5SV7.com.stefan.shared` (`SharedLink`). Another app of the team reads it, so it talks to whichever build was installed last: a simulator's Debug build points it at the local server.
+- Adds dedupe by `NameKey`, ported to `server/name-key.ts` with the Swift cases: names that share a key are one item, an item already needed keeps its amount and gains the source, and a remembered (off or checked) item comes back needed as `Edits.added` brings it back.
+- `items.sources` is `[{ app, id, title }]`, what put the item on the list. A row shows the first source's app icon beside its name, and the editor lists them under Added From. Typing an item back onto the list clears them. The apps' icons are bundled (`SourceIcon`, `SourceABetterMe` in the asset catalog); an unknown app shows a generic icon.
+- `shopalotl://list?id=<listId>` opens a list, so an app can link to the one it just added to.
+
 # TestFlight
 
 - `.github/workflows/testflight.yml` uploads a build on every push to `master` that touches the app (`Sources`, `Config`, `App.xcodeproj`, `scripts/archive`, `scripts/secrets.ts`). It waits ten minutes so a burst of pushes uploads once, and a manual dispatch (`gh workflow run testflight.yml`) builds right away. The internal group `me` has every build, so the build shows in the TestFlight app once App Store Connect has processed it.

@@ -1,10 +1,11 @@
 import { withBearer } from "sync-engine/core";
 import type { Config } from "./config";
+import { SPACE_ROUTES } from "./add-items";
 import { FEEDBACK_ROUTE, feedbackAnswer, fileFeedbackIssue } from "./feedback";
 
 /**
- * `engine` is the sync engine behind `POST /api/sync` and `GET /api/live`, reached only after the owner check, with
- * the `/api` prefix already stripped. The Worker forwards to its Durable Object, the Bun server runs a space
+ * `engine` is the space behind `POST /api/sync`, `GET /api/live`, and the other apps' routes (`add-items.ts`),
+ * reached only after the owner check, with the `/api` prefix already stripped. The Worker forwards to its Durable Object, the Bun server runs a space
  * in-process. `Upgraded` is what a host answers once it has taken over the socket (Bun returns nothing after
  * `server.upgrade`); the Worker always has a Response.
  */
@@ -68,7 +69,7 @@ export async function handle<Upgraded = never>(
     }
     return fileFeedbackIssue(request, app.config.githubToken);
   }
-  if (!ENGINE_ROUTES.has(route)) return error(404, "Not found");
+  if (!ENGINE_ROUTES.has(route) && !SPACE_ROUTES.has(route)) return error(404, "Not found");
   url.pathname = url.pathname.slice("/api".length);
   return app.engine(new Request(url, request));
 }
